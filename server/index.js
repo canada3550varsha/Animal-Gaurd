@@ -548,6 +548,12 @@ function visibleFarms(user) {
 
 // ================= ROUTES =================
 
+// Lean uptime check for keep-alive monitors (UptimeRobot etc.) — no auth, no DB
+// reads, no heavy work, so a 5-minute ping is cheap and instant.
+app.get("/health", (req, res) => {
+  res.json({ ok: true, service: "AnimalGuard", uptime_sec: Math.round(process.uptime()), ts: new Date().toISOString() });
+});
+
 // Auth: mock JWT on login (4-digit OTP accepted for demo)
 app.post("/api/auth/login", (req, res) => {
   const { mobile, code } = req.body || {};
@@ -1049,6 +1055,19 @@ async function autonomousScan() {
 }
 setTimeout(autonomousScan, 2500); // first pass shortly after boot
 setInterval(autonomousScan, 5 * 60 * 1000); // then every 5 minutes
+
+// ---------- Static frontend (Render single-service deploy) ----------
+// If the built app exists (npm run build -> dist/), serve it + SPA fallback so one
+// web service handles both the API and the UI. Everything under /api stays API-only.
+const DIST_DIR = join(__dirname, "..", "dist");
+if (existsSync(DIST_DIR)) {
+  app.use(express.static(DIST_DIR));
+  app.get(/^\/(?!api).*/, (req, res, next) => {
+    if (req.method !== "GET") return next();
+    res.sendFile(join(DIST_DIR, "index.html"));
+  });
+  console.log("[static] serving frontend from dist/");
+}
 
 app.listen(PORT, () => {
   console.log(`Animal Guard backend listening on http://localhost:${PORT}`);
