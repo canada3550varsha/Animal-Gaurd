@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #16a34a;
+  --color-primary-dark: #15803d;
+  --color-primary-light: #22c55e;
+  --color-accent: #ea580c;
+  --color-surface: #f8fafc;
+  --color-surface-dark: #e2e8f0;
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-gray-900 font-sans;
+    margin: 0;
+  }
+}
+
+.leaflet-container {
+  height: 300px;
+  width: 100%;
+  border-radius: 0.5rem;
+}
