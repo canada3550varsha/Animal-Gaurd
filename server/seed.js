@@ -191,3 +191,76 @@ export const SEED_REPORTS = [
     created_at: hoursAgo(3),
   },
 ];
+
+function daysAgo(d) {
+  return new Date(Date.now() - d * 24 * 60 * 60 * 1000).toISOString();
+}
+
+// Seed herd-level health ledger: vaccinations, treatments, deworming, mortality.
+// Recorded by the demo vet for the Pune demo farms so the health chart, drive
+// coverage and audit story start populated.
+export const SEED_HEALTH = [
+  {
+    id: "seed_hlth_1",
+    farm_id: "farm_1001",
+    record_type: "vaccination",
+    name: "FMD Trivalent Vaccine",
+    disease: "Foot and Mouth Disease",
+    dose: "2 ml/animal SC",
+    batch: "FMD-2609-A",
+    date: daysAgo(120),
+    notes: "45 animals covered; booster due in ~6 months",
+    actor: "u_vet1",
+    ts: Date.now() - 120 * 24 * 60 * 60 * 1000,
+  },
+  {
+    id: "seed_hlth_2",
+    farm_id: "farm_1001",
+    record_type: "deworming",
+    name: "Fenbendazole (Dewormer)",
+    dose: "7.5 ml/animal oral",
+    batch: "FBZ-2608-B",
+    date: daysAgo(60),
+    notes: "Routine 2-monthly deworming",
+    actor: "u_vet1",
+    ts: Date.now() - 60 * 24 * 60 * 60 * 1000,
+  },
+  {
+    id: "seed_hlth_3",
+    farm_id: "farm_1002",
+    record_type: "vaccination",
+    name: "HS + BQ Vaccine",
+    disease: "Hemorrhagic Septicemia / Black Quarter",
+    dose: "2 ml/animal SC",
+    batch: "HSBQ-2601-C",
+    date: daysAgo(90),
+    notes: "30 buffaloes covered",
+    actor: "u_vet1",
+    ts: Date.now() - 90 * 24 * 60 * 60 * 1000,
+  },
+  {
+    id: "seed_hlth_4",
+    farm_id: "farm_1003",
+    record_type: "vaccination",
+    name: "Ranikhet (ND) Vaccine",
+    disease: "Newcastle Disease",
+    dose: "Live LaSota, drinking-water route",
+    batch: "ND-2591-D",
+    date: daysAgo(45),
+    notes: "200 layers covered",
+    actor: "u_vet1",
+    ts: Date.now() - 45 * 24 * 60 * 60 * 1000,
+  },
+  {
+    id: "seed_hlth_5",
+    farm_id: "farm_1001",
+    record_type: "treatment",
+    name: "Oxytetracycline 10%",
+    dose: "1 ml/5 kg IM",
+    batch: "OTC-2605-E",
+    date: daysAgo(10),
+    notes: "Fever + respiratory cases responded well",
+    actor: "u_vet1",
+    ts: Date.now() - 10 * 24 * 60 * 60 * 1000,
+  },
+];

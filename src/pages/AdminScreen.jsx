@@ -8,6 +8,7 @@ const ACTION_LABEL = {
   auto_detect: { label: "AI Auto-Detect (Sensed)", icon: "🛰️" },
   dispatch_vet: { label: "Dispatch Vet", icon: "🚓" },
   send_advisory: { label: "Send Advisory", icon: "📢" },
+  health_record: { label: "Health Record (Vaccine/Treatment)", icon: "💉" },
 };
 
 const ACTOR_LABEL = {
@@ -72,6 +73,20 @@ export default function AdminScreen() {
       lines.push(`🦠 ${data.disease} · risk score ${data.score}/100 · env risk ${data.env_risk}/25`);
       lines.push(`📍 ${data.village}, ${data.taluka}, ${data.district}`);
       if (data.sensing_reading_id) lines.push(`Sensing reading: ${data.sensing_reading_id}`);
+    } else if (a.action === "health_record") {
+      const typeMeta = {
+        vaccination: "💉 Vaccination",
+        treatment: "💊 Treatment",
+        deworming: "🌰 Deworming",
+        mortality: "⚰️ Mortality",
+      };
+      lines.push(`${typeMeta[data.record_type] || data.record_type} — ${data.name || "—"}`);
+      lines.push(`Farm: ${data.farm_name || data.farm_id} (${data.farm_id})`);
+      if (data.disease || data.dose || data.batch) {
+        lines.push([data.disease && `🎯 ${data.disease}`, data.dose || null, data.batch && `Batch ${data.batch}`].filter(Boolean).join(" · "));
+      }
+      lines.push(`📍 ${data.village}, ${data.taluka}, ${data.district}`);
+      if (data.notes) lines.push(`📝 ${data.notes}`);
     } else {
       lines.push(`${data.report_count} case(s) · ${data.farm_count} farm(s) · ${data.animal_category || "—"}`);
       lines.push(`📍 ${data.village}`);

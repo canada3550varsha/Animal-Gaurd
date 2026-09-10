@@ -1,13 +1,37 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useApp } from "../context/AppContext.jsx";
 import { CATEGORY_LABELS, ANIMAL_ICONS } from "../data/constants.js";
 import { fdrsBand } from "../api/agro.js";
 import ImpactMetrics from "../components/ImpactMetrics.jsx";
+import { api, getToken } from "../api/client.js";
 
 export default function HomeScreen() {
   const { user, logout, getUserFarms, getFDRS, sensing } = useApp();
   const navigate = useNavigate();
   const farms = getUserFarms();
+  const [health, setHealth] = useState([]);
+
+  useEffect(() => {
+    let active = true;
+    api
+      .health(getToken())
+      .then(({ records }) => active && setHealth(records || []))
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Latest vaccination + record count per farm (herd health chart summary).
+  const healthByFarm = (farmId) => {
+    const recs = health.filter((r) => r.farm_id === farmId);
+    const lastVac = recs
+      .filter((r) => r.record_type === "vaccination")
+      .slice()
+      .sort((a, b) => new Date(b.date || b.ts) - new Date(a.date || a.ts))[0];
+    return { count: recs.length, lastVac };
+  };
 
   const getCategoryIcon = (farm) => {
     const icons = ANIMAL_ICONS[farm.animal_category];
@@ -106,6 +130,7 @@ export default function HomeScreen() {
               const fdrs = getFDRS(farm);
               const band = fdrs ? fdrsBand(fdrs.total) : fdrsBand(0);
               const envReady = fdrs && fdrs.env != null;
+              const { count: healthCount, lastVac } = healthByFarm(farm.farm_id);
               return (
                 <div
                   key={farm.farm_id}
@@ -147,6 +172,22 @@ export default function HomeScreen() {
                           style={{ width: `${fdrs.total}%` }}
                         />
                       </div>
+                    </div>
+                  )}
+
+                  {/* 💉 Herd health chart summary */}
+                  {(healthCount > 0 || lastVac) && (
+                    <div className="flex flex-wrap gap-1.5 mt-3">
+                      {lastVac && (
+                        <span className="bg-green-50 text-green-700 border border-green-100 px-2 py-0.5 rounded-full text-[10px] font-medium max-w-full">
+                          💉 Vaccinated · {lastVac.name} · {fmtShortDate(lastVac.date)}
+                        </span>
+                      )}
+                      {healthCount > 0 && (
+                        <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-[10px] font-medium">
+                          {healthCount} health record{healthCount === 1 ? "" : "s"}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -220,6 +261,10 @@ export default function HomeScreen() {
 }
 
 // ---- Live-sensing formatters (plain numbers; Kelvin surfaces only) ----
+function fmtShortDate(iso) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+}
 function fmtNum(v) {
   return typeof v === "number" ? Number(v).toFixed(3) : "—";
 }

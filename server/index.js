@@ -11,6 +11,7 @@ import {
   USER_BY_MOBILE,
   SEED_FARMS,
   SEED_REPORTS,
+  SEED_HEALTH,
 } from "./seed.js";
 import {
   detectClusters,
@@ -74,6 +75,8 @@ let DB = {
   audit: loadJson("audit.json", []),
   // Raw sensing log: one row per farm per scheduled Agro poll, independent of alerts.
   sensing_readings: loadJson("sensing_readings.json", []),
+  // Herd-level health ledger: vaccinations, treatments, deworming, mortality events.
+  health: loadJson("health.json", SEED_HEALTH),
 };
 const persist = () => {
   writeJson("users.json", DB.users);
@@ -82,6 +85,7 @@ const persist = () => {
   writeJson("inbox.json", DB.inbox);
   writeJson("audit.json", DB.audit);
   writeJson("sensing_readings.json", DB.sensing_readings);
+  writeJson("health.json", DB.health);
 };
 
 // ---------- Express setup ----------
@@ -907,6 +911,86 @@ app.get("/api/audit", authRequired, requireRole("admin"), (req, res) => {
       prevHash: e.prevHash,
     })),
   });
+});
+
+// ---------- Herd-level health ledger (vaccination / treatment / deworming / mortality) ----------
+const HEALTH_TYPES = new Set(["vaccination", "treatment", "deworming", "mortality"]);
+
+function visibleHealth(user) {
+  const vis = new Set(visibleFarms(user).map((f) => f.farm_id));
+  return DB.health
+    .filter((r) => vis.has(r.farm_id))
+    .sort((a, b) => b.ts - a.ts)
+    .map((r) => {
+      const farm = DB.farms.find((f) => f.farm_id === r.farm_id);
+      return {
+        ...r,
+        farm_name: farm?.name || null,
+        village: farm?.village || null,
+        taluka: farm?.taluka || null,
+        district: farm?.district || null,
+        animal_category: farm?.animal_category || null,
+      };
+    });
+}
+
+// Vet/admin records a vaccination, treatment, deworming or mortality event.
+app.post("/api/health", authRequired, requireRole("vet", "admin"), (req, res) => {
+  const { farm_id, record_type, name, disease, dose, batch, date, notes } = req.body || {};
+  const farm = DB.farms.find((f) => f.farm_id === farm_id);
+  if (!farm) return res.status(404).json({ error: "Farm not found" });
+  if (!canAccessFarm(farm, req.user)) return res.status(403).json({ error: "Forbidden: farm outside your scope" });
+  if (!HEALTH_TYPES.has(record_type)) {
+    return res.status(400).json({ error: "record_type must be vaccination, treatment, deworming or mortality" });
+  }
+  if (!name || !String(name).trim()) {
+    return res.status(400).json({ error: "name (vaccine/drug/dewormer) is required" });
+  }
+  const record = {
+    id: `hlth_${now()}_${Math.random().toString(36).slice(2, 6)}`,
+    farm_id,
+    record_type,
+    name: String(name).trim(),
+    disease: disease ? String(disease).trim() : null,
+    dose: dose ? String(dose).trim() : null,
+    batch: batch ? String(batch).trim() : null,
+    date: date ? new Date(date).toISOString() : new Date().toISOString(),
+    notes: notes ? String(notes).trim() : null,
+    actor: req.user.id,
+    ts: now(),
+  };
+  DB.health.push(record);
+  DB.audit = appendAudit(DB.audit, req.user.id, "health_record", {
+    record_id: record.id,
+    farm_id: farm.farm_id,
+    farm_name: farm.name,
+    village: farm.village,
+    taluka: farm.taluka,
+    district: farm.district,
+    animal_category: farm.animal_category,
+    record_type: record.record_type,
+    name: record.name,
+    disease: record.disease,
+    dose: record.dose,
+    batch: record.batch,
+    date: record.date,
+    notes: record.notes,
+  });
+  persist();
+  res.status(201).json({ record });
+});
+
+// Health ledger (role-scoped). Optional ?farm_id= for a single farm's chart.
+app.get("/api/health", authRequired, (req, res) => {
+  const farmId = req.query.farm_id;
+  if (farmId) {
+    const farm = DB.farms.find((f) => f.farm_id === farmId);
+    if (!farm) return res.status(404).json({ error: "Farm not found" });
+    if (!canAccessFarm(farm, req.user)) return res.status(403).json({ error: "Forbidden" });
+    res.json({ records: visibleHealth(req.user).filter((r) => r.farm_id === farmId) });
+    return;
+  }
+  res.json({ records: visibleHealth(req.user) });
 });
 
 // Impact metrics (live, computed server-side) — reporting-to-response time,

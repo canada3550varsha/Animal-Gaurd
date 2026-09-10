@@ -71,6 +71,10 @@ export const api = {
 
   sensing: (token) => request("/sensing", { token }),
   sensingById: (token, id) => request(`/sensing/${id}`, { token }),
+
+  health: (token, { farm_id } = {}) =>
+    request(farm_id ? `/health?farm_id=${encodeURIComponent(farm_id)}` : "/health", { token }),
+  createHealth: (token, record) => request("/health", { method: "POST", body: record, token }),
 };
 
 export function reqError(e) {

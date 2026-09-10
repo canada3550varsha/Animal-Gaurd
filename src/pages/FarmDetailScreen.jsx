@@ -7,6 +7,8 @@ import "leaflet/dist/leaflet.css";
 import { CATEGORY_LABELS, ANIMAL_ICONS, SYMPTOMS } from "../data/constants.js";
 import { fdrsBand, historicalRiskFor, hasLiveEnv } from "../api/agro.js";
 import { RING_INNER_KM, RING_OUTER_KM } from "../api/clustering.js";
+import { api, getToken } from "../api/client.js";
+import { healthIcon, healthLabel } from "../data/health.js";
 
 const markerIcon = L.divIcon({
   className: "",
@@ -21,6 +23,7 @@ export default function FarmDetailScreen() {
   const { farms, reports, envData, envLoading, refreshFarmEnv, getFDRS, criticalClusters, getFarmInbox, getLatestReading } = useApp();
   const [lang, setLang] = useState("en");
   const [expandedReportId, setExpandedReportId] = useState(null);
+  const [health, setHealth] = useState([]);
   const farm = farms.find((f) => f.farm_id === farmId);
 
   useEffect(() => {
@@ -28,6 +31,17 @@ export default function FarmDetailScreen() {
     console.log("env:open", farm.farm_id);
     refreshFarmEnv(farm.farm_id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [farmId]);
+
+  useEffect(() => {
+    let active = true;
+    api
+      .health(getToken(), { farm_id: farmId })
+      .then(({ records }) => active && setHealth(records || []))
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
   }, [farmId]);
 
   if (!farm) {
@@ -241,6 +255,44 @@ export default function FarmDetailScreen() {
             <InfoItem label="Village" value={farm.village} />
             <InfoItem label="District" value={farm.district} />
           </div>
+        </div>
+
+        {/* 💉 Herd Health Ledger — vaccinations, treatments, deworming, mortality */}
+        <div className="bg-white rounded-2xl p-4 border border-gray-100">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="font-semibold">💉 Vaccination & Treatment History</h3>
+            <span className="text-[10px] text-gray-400">{health.length} entr{health.length === 1 ? "y" : "ies"}</span>
+          </div>
+          <p className="text-[11px] text-gray-400 mb-3 leading-snug">
+            The herd's health chart — every vaccine, deworming, treatment and mortality event, recorded by the
+            veterinary team and kept in the tamper-evident audit trail.
+          </p>
+          {health.length === 0 ? (
+            <p className="text-sm text-gray-400">No health records yet. Vaccinations & treatments your veterinary team records appear here.</p>
+          ) : (
+            <div className="space-y-2">
+              {health.map((r) => (
+                <div key={r.id} className="border border-gray-100 rounded-xl p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-lg">{healthIcon(r.record_type)}</span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{r.name}</p>
+                        <p className="text-[11px] text-gray-500 uppercase">{healthLabel(r.record_type)}</p>
+                      </div>
+                    </div>
+                    <span className="text-[11px] text-gray-400 shrink-0">
+                      {r.date ? new Date(r.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 mt-1.5">
+                    {[r.dose, r.batch && `Batch ${r.batch}`, r.disease && `🎯 ${r.disease}`].filter(Boolean).join(" · ") || "—"}
+                  </p>
+                  {r.notes && <p className="text-[11px] text-gray-500 mt-1 leading-snug">{r.notes}</p>}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Map */}

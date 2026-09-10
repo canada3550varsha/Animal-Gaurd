@@ -8,6 +8,7 @@ import { ANIMAL_ICONS, CATEGORY_LABELS, SYMPTOMS } from "../data/constants.js";
 import { recommendedAction, RING_INNER_KM, RING_OUTER_KM } from "../api/clustering.js";
 import { fdrsBand } from "../api/agro.js";
 import ImpactMetrics from "../components/ImpactMetrics.jsx";
+import HealthPanel from "../components/HealthPanel.jsx";
 
 const SYMPTOM_LABEL = Object.fromEntries(
   Object.values(SYMPTOMS)
@@ -216,6 +217,9 @@ export default function DashboardScreen() {
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Programme Impact</h2>
           <ImpactMetrics />
         </section>
+
+        {/* 💉 Vaccination & treatment health ledger (vet records; farms + audit reflect instantly) */}
+        <HealthPanel />
 
         {/* 📡 Live Sensing Data — raw, plain, always-on. Pure readings, no risk coloring. */}
         <section>
