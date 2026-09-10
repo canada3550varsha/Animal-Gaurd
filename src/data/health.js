@@ -25,6 +25,25 @@ export const DRIVE_STATUS_LABEL = {
   completed: { label: "Completed", cls: "bg-blue-700 text-white" },
 };
 
+// Lab sample types, statuses and returned results.
+export const SAMPLE_TYPE_LABEL = {
+  blood: { icon: "🩸", label: "Blood" },
+  swab: { icon: "🧻", label: "Swab" },
+  feces: { icon: "🟫", label: "Feces" },
+  milk: { icon: "🥛", label: "Milk" },
+  tissue: { icon: "🔪", label: "Tissue" },
+};
+
+export const SAMPLE_STATUS_LABEL = {
+  awaiting_result: { label: "In lab — awaiting result", cls: "bg-amber-100 text-amber-700" },
+  resulted: { label: "Result returned", cls: "bg-gray-100 text-gray-600" },
+};
+
+export const SAMPLE_RESULT_LABEL = {
+  positive: { label: "Positive", cls: "bg-red-100 text-red-700" },
+  negative: { label: "Negative", cls: "bg-green-100 text-green-700" },
+};
+
 export const VACCINE_CATALOG = [
   "FMD Trivalent Vaccine",
   "Goat Pox Vaccine",

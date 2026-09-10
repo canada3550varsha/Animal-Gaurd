@@ -8,6 +8,7 @@ import ReportSymptomsScreen from "./pages/ReportSymptomsScreen.jsx";
 import VoiceReportScreen from "./pages/VoiceReportScreen.jsx";
 import DashboardScreen from "./pages/DashboardScreen.jsx";
 import AdminScreen from "./pages/AdminScreen.jsx";
+import LabScreen from "./pages/LabScreen.jsx";
 import ArchitectureScreen from "./pages/ArchitectureScreen.jsx";
 import WalkthroughScreen from "./pages/WalkthroughScreen.jsx";
 
@@ -25,12 +26,14 @@ export default function App() {
   }
 
   const isOfficer = user && (user.role === "vet" || user.role === "admin");
+  const isLab = user && user.role === "lab";
 
   return (
     <div className="min-h-screen bg-surface">
       <Routes>
         <Route path="/login" element={!user ? <LoginScreen /> : <Navigate to="/" />} />
-        <Route path="/" element={user ? <HomeScreen /> : <Navigate to="/login" />} />
+        <Route path="/" element={user ? (isLab ? <LabScreen /> : <HomeScreen />) : <Navigate to="/login" />} />
+        <Route path="/lab" element={isLab ? <LabScreen /> : (user ? <Navigate to="/" /> : <Navigate to="/login" />)} />
         <Route path="/architecture" element={<ArchitectureScreen />} />
         <Route path="/walkthrough" element={<WalkthroughScreen />} />
         <Route path="/dashboard" element={isOfficer ? <DashboardScreen /> : (user ? <Navigate to="/" /> : <Navigate to="/login" />)} />

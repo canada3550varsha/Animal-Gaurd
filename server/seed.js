@@ -11,6 +11,8 @@ export const SEED_USERS = [
   { id: "u_vet1", mobile: "9123456780", name: "Dr. Anil Veterinary", role: "vet", district: "Pune", taluka: "Haveli" },
   // Demo admin — full access
   { id: "u_admin1", mobile: "9988776655", name: "Admin Officer", role: "admin", district: null, taluka: null },
+  // Demo district laboratory — receives referred samples and returns results
+  { id: "u_lab1", mobile: "9000000001", name: "District Vet Lab · Pune", role: "lab", district: "Pune", taluka: null },
 ];
 
 // All demo accounts accept any 4-digit code; we match on mobile.
@@ -294,5 +296,41 @@ export const SEED_DRIVES = [
     status: "active",
     created_by: "u_vet1",
     created_at: Date.now() - 20 * 24 * 60 * 60 * 1000,
+  },
+];
+
+// Seed lab samples. smp_2 already came back POSITIVE (HS) so Farm Detail and
+// the audit log open with a real result; smp_1 is "awaiting_result" so the lab
+// demo can record a live result during the walkthrough.
+export const SEED_SAMPLES = [
+  {
+    id: "smp_2",
+    farm_id: "farm_1001",
+    animal_category: "large_livestock",
+    animal_type: "cattle",
+    sample_type: "swab",
+    suspected_disease: "Haemorrhagic Septicaemia",
+    test_requested: "HS — bacteriological culture",
+    lab_name: "District Veterinary Laboratory, Pune",
+    status: "resulted",
+    collected_by: "u_vet1",
+    result: "positive",
+    pathogen: "Pasteurella multocida",
+    remarks: "Peripheral blood + nasal swab; culture confirmed HS.",
+    collected_at: hoursAgo(30),
+    resulted_at: hoursAgo(20),
+  },
+  {
+    id: "smp_1",
+    farm_id: "farm_1002",
+    animal_category: "large_livestock",
+    animal_type: "buffalo",
+    sample_type: "blood",
+    suspected_disease: "Foot and Mouth Disease",
+    test_requested: "ELISA — FMD serotype panel",
+    lab_name: "District Veterinary Laboratory, Pune",
+    status: "awaiting_result",
+    collected_by: "u_vet1",
+    collected_at: hoursAgo(6),
   },
 ];

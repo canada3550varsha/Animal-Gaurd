@@ -72,6 +72,11 @@ export const api = {
   dashboard: (token) => request("/dashboard", { token }),
   clusterAction: (token, id, action) => request(`/clusters/${id}/${action}`, { method: "POST", token }),
 
+  samples: (token) => request("/samples", { token }),
+  createSample: (token, payload) => request("/samples", { method: "POST", body: payload, token }),
+  recordSampleResult: (token, id, payload) =>
+    request(`/samples/${id}/result`, { method: "POST", body: payload, token }),
+
   inbox: (token) => request("/inbox", { token }),
   audit: (token) => request("/audit", { token }),
   impact: (token) => request("/impact", { token }),

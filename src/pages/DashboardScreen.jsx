@@ -9,6 +9,7 @@ import { recommendedAction, RING_INNER_KM, RING_OUTER_KM } from "../api/clusteri
 import { fdrsBand } from "../api/agro.js";
 import ImpactMetrics from "../components/ImpactMetrics.jsx";
 import HealthPanel from "../components/HealthPanel.jsx";
+import SamplePanel from "../components/SamplePanel.jsx";
 
 const SYMPTOM_LABEL = Object.fromEntries(
   Object.values(SYMPTOMS)
@@ -327,6 +328,14 @@ export default function DashboardScreen() {
                 </div>
               </div>
             </div>
+          </section>
+        )}
+
+        {/* 🧪 Lab sample & referral — blood/swab → district lab → result to farm */}
+        {user?.role === "vet" && (
+          <section>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Lab &amp; Diagnostics</h2>
+            <SamplePanel />
           </section>
         )}
 

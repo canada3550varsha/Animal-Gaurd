@@ -8,7 +8,7 @@ import { CATEGORY_LABELS, ANIMAL_ICONS, SYMPTOMS } from "../data/constants.js";
 import { fdrsBand, historicalRiskFor, hasLiveEnv } from "../api/agro.js";
 import { RING_INNER_KM, RING_OUTER_KM } from "../api/clustering.js";
 import { api, getToken } from "../api/client.js";
-import { healthIcon, healthLabel } from "../data/health.js";
+import { healthIcon, healthLabel, SAMPLE_TYPE_LABEL, SAMPLE_RESULT_LABEL, SAMPLE_STATUS_LABEL } from "../data/health.js";
 
 const markerIcon = L.divIcon({
   className: "",
@@ -25,6 +25,7 @@ export default function FarmDetailScreen() {
   const [expandedReportId, setExpandedReportId] = useState(null);
   const [health, setHealth] = useState([]);
   const [drives, setDrives] = useState([]);
+  const [samples, setSamples] = useState([]);
   const farm = farms.find((f) => f.farm_id === farmId);
 
   useEffect(() => {
@@ -56,6 +57,17 @@ export default function FarmDetailScreen() {
     };
   }, [farmId]);
 
+  useEffect(() => {
+    let active = true;
+    api
+      .samples(getToken())
+      .then(({ samples }) => active && setSamples(samples || []))
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [farmId]);
+
   if (!farm) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -81,6 +93,12 @@ export default function FarmDetailScreen() {
     .filter((r) => r.farm_id === farm.farm_id)
     .slice()
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  // Lab samples & results for this farm (referred by vet, returned by lab).
+  const farmSamples = samples
+    .filter((s) => s.farm_id === farm.farm_id)
+    .slice()
+    .sort((a, b) => new Date(b.collected_at) - new Date(a.collected_at));
 
   // Drives whose target region covers this farm + whether this herd is covered.
   const farmDrives = drives.filter(
@@ -418,6 +436,58 @@ export default function FarmDetailScreen() {
           <p className="text-xs text-gray-400 mt-3">
             Symptom reports appear here once submitted (Phase 3)
           </p>
+        </div>
+
+        {/* 🧪 Lab samples & results for this herd */}
+        <div className="bg-white rounded-2xl p-4 border border-gray-100">
+          <h3 className="font-semibold mb-3">🧪 Lab Samples &amp; Results ({farmSamples.length})</h3>
+          {farmSamples.length === 0 ? (
+            <p className="text-sm text-gray-400">
+              No samples referred yet. The vet sends blood/swab samples to the district lab; the returned result appears here.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {farmSamples.map((s) => {
+                const res = SAMPLE_RESULT_LABEL[s.result];
+                const st = SAMPLE_STATUS_LABEL[s.status];
+                return (
+                  <div key={s.id} className="border border-gray-100 rounded-xl p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-semibold text-gray-900">
+                        {SAMPLE_TYPE_LABEL[s.sample_type]?.icon || "🧪"} {SAMPLE_TYPE_LABEL[s.sample_type]?.label || s.sample_type} sample
+                      </p>
+                      {s.status === "resulted" && res ? (
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 ${res.cls}`}>
+                          {res.label}
+                        </span>
+                      ) : (
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 ${st?.cls}`}>
+                          {st?.label || s.status}
+                        </span>
+                      )}
+                    </div>
+                    {(s.suspected_disease || s.test_requested) && (
+                      <p className="text-[11px] text-gray-500 mt-1 truncate">
+                        {[s.suspected_disease ? `🦠 Suspected ${s.suspected_disease}` : null, s.test_requested].filter(Boolean).join(" · ")}
+                      </p>
+                    )}
+                    {s.status === "resulted" && (
+                      <p className="text-[11px] text-gray-600 mt-1">
+                        Result: {res ? res.label : s.result}
+                        {s.pathogen ? ` · 🦠 Pathogen: ${s.pathogen}` : ""}
+                      </p>
+                    )}
+                    <p className="text-[10px] text-gray-400 mt-1">
+                      Collected {new Date(s.collected_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                      {s.resulted_at ? ` · Result ${new Date(s.resulted_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}` : ""}
+                      {" · "}{s.lab_name}
+                    </p>
+                    {s.remarks && <p className="text-[11px] text-gray-500 mt-1 leading-snug">{s.remarks}</p>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Farm Reports (actual submissions for this farm) */}

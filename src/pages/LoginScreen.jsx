@@ -79,7 +79,7 @@ export default function LoginScreen() {
         </form>
 
         <p className="text-xs text-gray-400 text-center mt-4">
-          Demo: 9876543210 (Farmer) · 9123456780 (Vet) · 9988776655 (Admin) — any 4-digit code
+          Demo: 9876543210 (Farmer) · 9123456780 (Vet) · 9988776655 (Admin) · 9000000001 (Lab) — any 4-digit code
         </p>
 
         <div className="mt-5 pt-4 border-t border-gray-100 space-y-2">

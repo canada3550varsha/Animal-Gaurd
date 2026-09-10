@@ -13,6 +13,7 @@ import {
   SEED_REPORTS,
   SEED_HEALTH,
   SEED_DRIVES,
+  SEED_SAMPLES,
 } from "./seed.js";
 import {
   detectClusters,
@@ -80,6 +81,8 @@ let DB = {
   health: loadJson("health.json", SEED_HEALTH),
   // Vaccination drives: planned mass-vaccination campaigns with live coverage.
   drives: loadJson("drives.json", SEED_DRIVES),
+  // Lab samples: referrals from vet to district laboratory + returned results.
+  samples: loadJson("samples.json", SEED_SAMPLES),
 };
 const persist = () => {
   writeJson("users.json", DB.users);
@@ -90,6 +93,7 @@ const persist = () => {
   writeJson("sensing_readings.json", DB.sensing_readings);
   writeJson("health.json", DB.health);
   writeJson("drives.json", DB.drives);
+  writeJson("samples.json", DB.samples);
 };
 
 // ---------- Express setup ----------
@@ -1024,6 +1028,11 @@ app.get("/api/health", authRequired, (req, res) => {
 const ANIMAL_CATEGORIES = ["large_livestock", "small_livestock", "poultry"];
 const DRIVE_STATUSES = ["planned", "active", "completed"];
 
+// Lab samples & referral constants.
+const SAMPLE_TYPES = ["blood", "swab", "feces", "milk", "tissue"];
+const SAMPLE_RESULTS = ["positive", "negative"];
+const DEFAULT_LAB = "District Veterinary Laboratory, Pune";
+
 // The farms a drive targets = farms in the drive's region matching its animal
 // category. This is what coverage is measured against.
 function targetFarmsFor(drive) {
@@ -1153,6 +1162,122 @@ app.patch("/api/drives/:id/status", authRequired, requireRole("vet", "admin"), (
   });
   persist();
   res.json({ drive, coverage: driveCoverage(drive) });
+});
+
+// ---------- Lab samples & referral (blood/swab → lab → result → farm) ----------
+const nearestSampleInfo = (s) => {
+  const f = DB.farms.find((x) => x.farm_id === s.farm_id);
+  return {
+    sample_id: s.id,
+    farm_id: s.farm_id,
+    farm_name: f?.name || s.farm_id,
+    village: f?.village || s.village || null,
+    taluka: f?.taluka || null,
+    district: f?.district || null,
+    animal_category: s.animal_category,
+    animal_type: s.animal_type,
+    sample_type: s.sample_type,
+    lab_name: s.lab_name,
+  };
+};
+
+// Vet collects a sample and refers it to the district lab (awaiting_result).
+app.post("/api/samples", authRequired, requireRole("vet", "admin"), (req, res) => {
+  const { farm_id, sample_type, suspected_disease, test_requested, lab_name, notes } = req.body || {};
+  const farm = DB.farms.find((f) => f.farm_id === farm_id);
+  if (!farm) return res.status(404).json({ error: "Farm not found" });
+  if (!canAccessFarm(farm, req.user)) return res.status(403).json({ error: "Forbidden" });
+  if (!SAMPLE_TYPES.includes(sample_type)) {
+    return res.status(400).json({ error: `sample_type must be one of: ${SAMPLE_TYPES.join(", ")}` });
+  }
+  if (suspected_disease !== undefined && (typeof suspected_disease !== "string" || suspected_disease.length > NAME_MAX)) {
+    return res.status(400).json({ error: "suspected_disease too long or invalid" });
+  }
+  if (notes !== undefined && (typeof notes !== "string" || notes.length > NOTES_MAX)) {
+    return res.status(400).json({ error: "notes too long or invalid" });
+  }
+  const sample = {
+    id: `smp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    farm_id: farm.farm_id,
+    animal_category: farm.animal_category,
+    animal_type: farm.animal_type,
+    sample_type,
+    suspected_disease: suspected_disease?.trim() || undefined,
+    test_requested: test_requested?.trim() || undefined,
+    lab_name: lab_name?.trim() || DEFAULT_LAB,
+    status: "awaiting_result",
+    collected_by: req.user.id,
+    collected_at: new Date().toISOString(),
+    notes: notes?.trim() || undefined,
+  };
+  DB.samples.push(sample);
+  DB.audit = appendAudit(DB.audit, req.user.id, "sample_collected", {
+    ...nearestSampleInfo(sample),
+    suspected_disease: sample.suspected_disease || null,
+    test_requested: sample.test_requested || null,
+    notes: sample.notes || null,
+  });
+  persist();
+  res.status(201).json({ sample });
+});
+
+// Role-scoped sample list (lab, vet, admin, farmer own farms).
+app.get("/api/samples", authRequired, (req, res) => {
+  let samples = DB.samples.slice();
+  if (req.user.role === "farmer") {
+    const myFarms = new Set(DB.farms.filter((f) => f.user_id === req.user.id).map((f) => f.farm_id));
+    samples = samples.filter((s) => myFarms.has(s.farm_id));
+  } else if (req.user.role === "vet") {
+    samples = samples.filter((s) => {
+      const f = DB.farms.find((x) => x.farm_id === s.farm_id);
+      return !f?.district || f.district === req.user.district;
+    });
+  } else if (req.user.role === "lab") {
+    samples = samples.filter((s) => {
+      const f = DB.farms.find((x) => x.farm_id === s.farm_id);
+      return !f?.district || f.district === req.user.district;
+    });
+    samples = samples.map((s) => {
+      const f = DB.farms.find((x) => x.farm_id === s.farm_id);
+      return { ...s, farm_name: f?.name || s.farm_id, village: f?.village || s.village || null, herd_size: f?.herd_size || null };
+    });
+  }
+  samples = samples
+    .map((s) => ({ ...s, farm_name: DB.farms.find((f) => f.farm_id === s.farm_id)?.name || s.farm_id }))
+    .sort((a, b) => new Date(b.collected_at) - new Date(a.collected_at));
+  res.json({ samples });
+});
+
+// Lab records the result on a referred sample → result returns to the farm record.
+app.post("/api/samples/:id/result", authRequired, requireRole("lab", "vet", "admin"), (req, res) => {
+  const sample = DB.samples.find((s) => s.id === req.params.id);
+  if (!sample) return res.status(404).json({ error: "Sample not found" });
+  const { result, pathogen, remarks, test_requested } = req.body || {};
+  if (!SAMPLE_RESULTS.includes(result)) {
+    return res.status(400).json({ error: "result must be positive or negative" });
+  }
+  if (pathogen !== undefined && (typeof pathogen !== "string" || pathogen.length > NAME_MAX)) {
+    return res.status(400).json({ error: "pathogen too long or invalid" });
+  }
+  if (remarks !== undefined && (typeof remarks !== "string" || remarks.length > NOTES_MAX)) {
+    return res.status(400).json({ error: "remarks too long or invalid" });
+  }
+  sample.result = result;
+  sample.pathogen = pathogen?.trim() || undefined;
+  sample.remarks = remarks?.trim() || undefined;
+  if (test_requested) sample.test_requested = test_requested.trim();
+  sample.status = "resulted";
+  sample.resulted_by = req.user.id;
+  sample.resulted_at = new Date().toISOString();
+  DB.audit = appendAudit(DB.audit, req.user.id, "lab_result", {
+    ...nearestSampleInfo(sample),
+    suspected_disease: sample.suspected_disease || null,
+    result,
+    pathogen: sample.pathogen || null,
+    remarks: sample.remarks || null,
+  });
+  persist();
+  res.json({ sample });
 });
 
 // Impact metrics (live, computed server-side) — reporting-to-response time,

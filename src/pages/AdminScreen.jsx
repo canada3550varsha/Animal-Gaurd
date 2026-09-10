@@ -10,6 +10,8 @@ const ACTION_LABEL = {
   send_advisory: { label: "Send Advisory", icon: "📢" },
   health_record: { label: "Health Record (Vaccine/Treatment)", icon: "💉" },
   vaccination_drive: { label: "Vaccination Drive", icon: "🚀" },
+  sample_collected: { label: "Lab Sample Collected", icon: "🧪" },
+  lab_result: { label: "Lab Result", icon: "🔬" },
 };
 
 const ACTOR_LABEL = {
@@ -94,6 +96,16 @@ export default function AdminScreen() {
       if (data.disease || data.vaccine) lines.push(`🎯 ${data.disease || "—"} · 💉 ${data.vaccine || "—"}`);
       lines.push(`📍 ${data.taluka || "All talukas"}, ${data.district} · ${data.animal_category || "—"}`);
       if (data.status) lines.push(`Status: ${data.status.toUpperCase()}`);
+    } else if (a.action === "sample_collected") {
+      lines.push(`Sample ${data.sample_type} from ${data.farm_name}`);
+      if (data.suspected_disease) lines.push(`🦠 Suspected ${data.suspected_disease}`);
+      lines.push(`🔬 → ${data.lab_name}`);
+      lines.push(`📍 ${data.village}, ${data.taluka}, ${data.district}`);
+    } else if (a.action === "lab_result") {
+      lines.push(`Sample ${data.sample_type} · ${data.farm_name} · ${data.result.toUpperCase()}`);
+      if (data.pathogen) lines.push(`🦠 Pathogen: ${data.pathogen}`);
+      lines.push(`📍 ${data.village}, ${data.taluka}, ${data.district}`);
+      if (data.remarks) lines.push(`📝 ${data.remarks}`);
     } else {
       lines.push(`${data.report_count} case(s) · ${data.farm_count} farm(s) · ${data.animal_category || "—"}`);
       lines.push(`📍 ${data.village}`);
