@@ -1,5 +1,6 @@
 import { Component, useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useApp } from "../context/AppContext.jsx";
 import { api, reqError } from "../api/client.js";
 import { hasLiveEnv } from "../api/agro.js";
 
