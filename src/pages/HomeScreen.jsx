@@ -11,12 +11,24 @@ export default function HomeScreen() {
   const navigate = useNavigate();
   const farms = getUserFarms();
   const [health, setHealth] = useState([]);
+  const [drives, setDrives] = useState([]);
 
   useEffect(() => {
     let active = true;
     api
       .health(getToken())
       .then(({ records }) => active && setHealth(records || []))
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    api
+      .drives(getToken())
+      .then(({ drives }) => active && setDrives(drives || []))
       .catch(() => {});
     return () => {
       active = false;
@@ -31,6 +43,20 @@ export default function HomeScreen() {
       .slice()
       .sort((a, b) => new Date(b.date || b.ts) - new Date(a.date || a.ts))[0];
     return { count: recs.length, lastVac };
+  };
+
+  // Most relevant drive for a farm (matched region + category) + its coverage status.
+  const driveChipFor = (farm) => {
+    const match = drives.find(
+      (d) =>
+        d.coverage &&
+        d.district === farm.district &&
+        (!d.taluka || d.taluka === farm.taluka) &&
+        d.animal_category === farm.animal_category
+    );
+    if (!match) return null;
+    const covered = (match.coverage.covered_farm_ids || []).includes(farm.farm_id);
+    return { drive: match, covered };
   };
 
   const getCategoryIcon = (farm) => {
@@ -131,6 +157,7 @@ export default function HomeScreen() {
               const band = fdrs ? fdrsBand(fdrs.total) : fdrsBand(0);
               const envReady = fdrs && fdrs.env != null;
               const { count: healthCount, lastVac } = healthByFarm(farm.farm_id);
+              const driveChip = driveChipFor(farm);
               return (
                 <div
                   key={farm.farm_id}
@@ -188,6 +215,22 @@ export default function HomeScreen() {
                           {healthCount} health record{healthCount === 1 ? "" : "s"}
                         </span>
                       )}
+                    </div>
+                  )}
+
+                  {driveChip && (
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${
+                          driveChip.covered
+                            ? "bg-green-50 text-green-700 border-green-100"
+                            : "bg-amber-50 text-amber-700 border-amber-100"
+                        }`}
+                      >
+                        {driveChip.covered
+                          ? `✅ ${driveChip.drive.name} — covered`
+                          : `⚠ ${driveChip.drive.name} — your farm is still to vaccinate`}
+                      </span>
                     </div>
                   )}
                 </div>

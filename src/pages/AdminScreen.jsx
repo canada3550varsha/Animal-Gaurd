@@ -9,6 +9,7 @@ const ACTION_LABEL = {
   dispatch_vet: { label: "Dispatch Vet", icon: "🚓" },
   send_advisory: { label: "Send Advisory", icon: "📢" },
   health_record: { label: "Health Record (Vaccine/Treatment)", icon: "💉" },
+  vaccination_drive: { label: "Vaccination Drive", icon: "🚀" },
 };
 
 const ACTOR_LABEL = {
@@ -87,6 +88,11 @@ export default function AdminScreen() {
       }
       lines.push(`📍 ${data.village}, ${data.taluka}, ${data.district}`);
       if (data.notes) lines.push(`📝 ${data.notes}`);
+    } else if (a.action === "vaccination_drive") {
+      lines.push(`Drive: ${data.name || data.drive_id}`);
+      if (data.disease || data.vaccine) lines.push(`🎯 ${data.disease || "—"} · 💉 ${data.vaccine || "—"}`);
+      lines.push(`📍 ${data.taluka || "All talukas"}, ${data.district} · ${data.animal_category || "—"}`);
+      if (data.status) lines.push(`Status: ${data.status.toUpperCase()}`);
     } else {
       lines.push(`${data.report_count} case(s) · ${data.farm_count} farm(s) · ${data.animal_category || "—"}`);
       lines.push(`📍 ${data.village}`);

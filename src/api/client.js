@@ -75,6 +75,11 @@ export const api = {
   health: (token, { farm_id } = {}) =>
     request(farm_id ? `/health?farm_id=${encodeURIComponent(farm_id)}` : "/health", { token }),
   createHealth: (token, record) => request("/health", { method: "POST", body: record, token }),
+
+  drives: (token) => request("/drives", { token }),
+  createDrive: (token, drive) => request("/drives", { method: "POST", body: drive, token }),
+  updateDriveStatus: (token, id, status) =>
+    request(`/drives/${id}/status`, { method: "PATCH", body: { status }, token }),
 };
 
 export function reqError(e) {

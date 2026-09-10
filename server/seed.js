@@ -196,6 +196,10 @@ function daysAgo(d) {
   return new Date(Date.now() - d * 24 * 60 * 60 * 1000).toISOString();
 }
 
+function daysIn(d) {
+  return new Date(Date.now() + d * 24 * 60 * 60 * 1000).toISOString();
+}
+
 // Seed herd-level health ledger: vaccinations, treatments, deworming, mortality.
 // Recorded by the demo vet for the Pune demo farms so the health chart, drive
 // coverage and audit story start populated.
@@ -208,10 +212,12 @@ export const SEED_HEALTH = [
     disease: "Foot and Mouth Disease",
     dose: "2 ml/animal SC",
     batch: "FMD-2609-A",
-    date: daysAgo(120),
+    date: daysAgo(10),
     notes: "45 animals covered; booster due in ~6 months",
     actor: "u_vet1",
-    ts: Date.now() - 120 * 24 * 60 * 60 * 1000,
+    animals: 45,
+    drive_id: "drv_fmd_haveli_2026",
+    ts: Date.now() - 10 * 24 * 60 * 60 * 1000,
   },
   {
     id: "seed_hlth_2",
@@ -262,5 +268,26 @@ export const SEED_HEALTH = [
     notes: "Fever + respiratory cases responded well",
     actor: "u_vet1",
     ts: Date.now() - 10 * 24 * 60 * 60 * 1000,
+  },
+];
+
+// Seed vaccination drives. The FMD drive is running now: Sharma Dairy Farm
+// (Wadgaon Sheri) is already covered via seed_hlth_1; Patil Buffalo Herd
+// (Undri) is still-to-do — so the dashboard opens showing a live 50% farm
+// coverage and an explicit Undri gap (the "coverage evidencing" story).
+export const SEED_DRIVES = [
+  {
+    drive_id: "drv_fmd_haveli_2026",
+    name: "FMD Drive — Haveli Monsoon 2026",
+    disease: "Foot and Mouth Disease",
+    vaccine: "FMD Trivalent Vaccine",
+    taluka: "Haveli",
+    district: "Pune",
+    animal_category: "large_livestock",
+    start_date: daysAgo(20),
+    end_date: daysIn(30),
+    status: "active",
+    created_by: "u_vet1",
+    created_at: Date.now() - 20 * 24 * 60 * 60 * 1000,
   },
 ];

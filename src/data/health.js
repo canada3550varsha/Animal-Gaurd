@@ -19,6 +19,12 @@ export function healthLabel(type) {
   return HEALTH_TYPE_LABEL[type]?.label || type;
 }
 
+export const DRIVE_STATUS_LABEL = {
+  planned: { label: "Planned", cls: "bg-gray-100 text-gray-600" },
+  active: { label: "Active", cls: "bg-green-700 text-white" },
+  completed: { label: "Completed", cls: "bg-blue-700 text-white" },
+};
+
 export const VACCINE_CATALOG = [
   "FMD Trivalent Vaccine",
   "Goat Pox Vaccine",

@@ -12,6 +12,7 @@ import {
   SEED_FARMS,
   SEED_REPORTS,
   SEED_HEALTH,
+  SEED_DRIVES,
 } from "./seed.js";
 import {
   detectClusters,
@@ -77,6 +78,8 @@ let DB = {
   sensing_readings: loadJson("sensing_readings.json", []),
   // Herd-level health ledger: vaccinations, treatments, deworming, mortality events.
   health: loadJson("health.json", SEED_HEALTH),
+  // Vaccination drives: planned mass-vaccination campaigns with live coverage.
+  drives: loadJson("drives.json", SEED_DRIVES),
 };
 const persist = () => {
   writeJson("users.json", DB.users);
@@ -86,6 +89,7 @@ const persist = () => {
   writeJson("audit.json", DB.audit);
   writeJson("sensing_readings.json", DB.sensing_readings);
   writeJson("health.json", DB.health);
+  writeJson("drives.json", DB.drives);
 };
 
 // ---------- Express setup ----------
@@ -923,6 +927,7 @@ function visibleHealth(user) {
     .sort((a, b) => b.ts - a.ts)
     .map((r) => {
       const farm = DB.farms.find((f) => f.farm_id === r.farm_id);
+      const drive = r.drive_id ? DB.drives.find((d) => d.drive_id === r.drive_id) : null;
       return {
         ...r,
         farm_name: farm?.name || null,
@@ -930,13 +935,14 @@ function visibleHealth(user) {
         taluka: farm?.taluka || null,
         district: farm?.district || null,
         animal_category: farm?.animal_category || null,
+        drive_name: drive?.name || null,
       };
     });
 }
 
 // Vet/admin records a vaccination, treatment, deworming or mortality event.
 app.post("/api/health", authRequired, requireRole("vet", "admin"), (req, res) => {
-  const { farm_id, record_type, name, disease, dose, batch, date, notes } = req.body || {};
+  const { farm_id, record_type, name, disease, dose, batch, date, notes, drive_id, animals } = req.body || {};
   const farm = DB.farms.find((f) => f.farm_id === farm_id);
   if (!farm) return res.status(404).json({ error: "Farm not found" });
   if (!canAccessFarm(farm, req.user)) return res.status(403).json({ error: "Forbidden: farm outside your scope" });
@@ -946,6 +952,12 @@ app.post("/api/health", authRequired, requireRole("vet", "admin"), (req, res) =>
   if (!name || !String(name).trim()) {
     return res.status(400).json({ error: "name (vaccine/drug/dewormer) is required" });
   }
+  let drive = null;
+  if (drive_id) {
+    drive = DB.drives.find((d) => d.drive_id === drive_id);
+    if (!drive) return res.status(400).json({ error: "Unknown drive_id" });
+  }
+  const animalsCount = animals != null && animals !== "" ? Math.max(1, Number(animals)) : null;
   const record = {
     id: `hlth_${now()}_${Math.random().toString(36).slice(2, 6)}`,
     farm_id,
@@ -956,6 +968,8 @@ app.post("/api/health", authRequired, requireRole("vet", "admin"), (req, res) =>
     batch: batch ? String(batch).trim() : null,
     date: date ? new Date(date).toISOString() : new Date().toISOString(),
     notes: notes ? String(notes).trim() : null,
+    animals: animalsCount,
+    drive_id: drive?.drive_id || null,
     actor: req.user.id,
     ts: now(),
   };
@@ -974,6 +988,9 @@ app.post("/api/health", authRequired, requireRole("vet", "admin"), (req, res) =>
     dose: record.dose,
     batch: record.batch,
     date: record.date,
+    animals: record.animals,
+    drive_id: record.drive_id,
+    drive_name: drive?.name || null,
     notes: record.notes,
   });
   persist();
@@ -991,6 +1008,141 @@ app.get("/api/health", authRequired, (req, res) => {
     return;
   }
   res.json({ records: visibleHealth(req.user) });
+});
+
+// ---------- Vaccination drives & coverage ----------
+const ANIMAL_CATEGORIES = ["large_livestock", "small_livestock", "poultry"];
+const DRIVE_STATUSES = ["planned", "active", "completed"];
+
+// The farms a drive targets = farms in the drive's region matching its animal
+// category. This is what coverage is measured against.
+function targetFarmsFor(drive) {
+  return DB.farms.filter(
+    (f) =>
+      f.district === drive.district &&
+      (!drive.taluka || f.taluka === drive.taluka) &&
+      f.animal_category === drive.animal_category
+  );
+}
+
+// A farm counts as covered when any vaccination for this drive was recorded on
+// its health ledger (drive-linked), OR any vaccination for the same disease was
+// recorded since the drive started.
+function driveCoverage(drive) {
+  const targets = targetFarmsFor(drive);
+  const relevant = DB.health.filter((r) => {
+    if (r.record_type !== "vaccination") return false;
+    if (r.drive_id === drive.drive_id) return true;
+    return (
+      r.disease === drive.disease &&
+      new Date(r.date) >= new Date(drive.start_date)
+    );
+  });
+  const coveredById = new Map();
+  for (const r of relevant) coveredById.set(r.farm_id, r);
+  const coveredFarms = targets.filter((f) => coveredById.has(f.farm_id));
+  const animalsCovered = coveredFarms.reduce(
+    (s, f) => s + (coveredById.get(f.farm_id).animals ?? f.herd_size),
+    0
+  );
+  const animalsTarget = targets.reduce((s, f) => s + f.herd_size, 0);
+  const villageMap = {};
+  for (const f of targets) {
+    villageMap[f.village] ||= { village: f.village, taluka: f.taluka, target: 0, covered: 0 };
+    villageMap[f.village].target += 1;
+    if (coveredById.has(f.farm_id)) villageMap[f.village].covered += 1;
+  }
+  return {
+    target_farm_count: targets.length,
+    target_animal_count: animalsTarget,
+    covered_farm_count: coveredFarms.length,
+    farm_coverage_pct: targets.length ? Math.round((coveredFarms.length / targets.length) * 100) : 0,
+    animal_coverage_pct: animalsTarget ? Math.round((animalsCovered / animalsTarget) * 100) : 0,
+    covered_farm_ids: coveredFarms.map((f) => f.farm_id),
+    villages: Object.values(villageMap).map((v) => ({
+      ...v,
+      pct: v.target ? Math.round((v.covered / v.target) * 100) : 0,
+    })),
+    still_to_do: targets
+      .filter((f) => !coveredById.has(f.farm_id))
+      .map((f) => ({ farm_id: f.farm_id, name: f.name, village: f.village, taluka: f.taluka, herd_size: f.herd_size })),
+    overdue: drive.end_date && new Date(drive.end_date) < Date.now(),
+  };
+}
+
+// Vet/admin launches a drive. District is required; taluka narrows it (optional).
+app.post("/api/drives", authRequired, requireRole("vet", "admin"), (req, res) => {
+  const { name, disease, vaccine, taluka, district, animal_category, start_date, end_date, status } = req.body || {};
+  if (!name || !String(name).trim()) return res.status(400).json({ error: "Drive name is required" });
+  if (!district || !String(district).trim()) return res.status(400).json({ error: "District is required" });
+  if (!ANIMAL_CATEGORIES.includes(animal_category)) {
+    return res.status(400).json({ error: "animal_category must be large_livestock, small_livestock or poultry" });
+  }
+  const drive = {
+    drive_id: `drv_${now()}`,
+    name: String(name).trim(),
+    disease: disease ? String(disease).trim() : null,
+    vaccine: vaccine ? String(vaccine).trim() : null,
+    taluka: taluka ? String(taluka).trim() : null,
+    district: String(district).trim(),
+    animal_category,
+    start_date: start_date ? new Date(start_date).toISOString() : new Date().toISOString(),
+    end_date: end_date ? new Date(end_date).toISOString() : null,
+    status: ["active", "completed"].includes(status) ? "active" : "planned",
+    created_by: req.user.id,
+    created_at: now(),
+  };
+  DB.drives.push(drive);
+  DB.audit = appendAudit(DB.audit, req.user.id, "vaccination_drive", {
+    drive_id: drive.drive_id,
+    name: drive.name,
+    disease: drive.disease,
+    vaccine: drive.vaccine,
+    taluka: drive.taluka,
+    district: drive.district,
+    animal_category: drive.animal_category,
+    start_date: drive.start_date,
+    end_date: drive.end_date,
+    status: drive.status,
+  });
+  persist();
+  res.status(201).json({ drive, coverage: driveCoverage(drive) });
+});
+
+// Drive list + live coverage. Vet sees their district; admin & farmers see all
+// (campaign information is public, same village surveillance grid).
+app.get("/api/drives", authRequired, (req, res) => {
+  let drives = DB.drives;
+  if (req.user.role === "vet") drives = drives.filter((d) => d.district === req.user.district);
+  res.json({
+    drives: drives
+      .slice()
+      .sort((a, b) => b.created_at - a.created_at)
+      .map((d) => ({ ...d, coverage: driveCoverage(d) })),
+  });
+});
+
+// Vet/admin moves a drive through planned → active → completed.
+app.patch("/api/drives/:id/status", authRequired, requireRole("vet", "admin"), (req, res) => {
+  const drive = DB.drives.find((d) => d.drive_id === req.params.id);
+  if (!drive) return res.status(404).json({ error: "Drive not found" });
+  const { status } = req.body || {};
+  if (!DRIVE_STATUSES.includes(status)) {
+    return res.status(400).json({ error: "status must be planned, active or completed" });
+  }
+  drive.status = status;
+  DB.audit = appendAudit(DB.audit, req.user.id, "vaccination_drive", {
+    drive_id: drive.drive_id,
+    name: drive.name,
+    disease: drive.disease,
+    vaccine: drive.vaccine,
+    taluka: drive.taluka,
+    district: drive.district,
+    animal_category: drive.animal_category,
+    status,
+  });
+  persist();
+  res.json({ drive, coverage: driveCoverage(drive) });
 });
 
 // Impact metrics (live, computed server-side) — reporting-to-response time,

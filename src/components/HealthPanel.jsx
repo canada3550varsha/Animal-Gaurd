@@ -9,13 +9,16 @@ import {
   DRUG_CATALOG,
   DISEASE_CATALOG,
 } from "../data/health.js";
+import DrivesPanel from "./DrivesPanel.jsx";
 
 const fmtDate = (iso) =>
   iso ? new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "";
 
 export default function HealthPanel({ limit = 10 }) {
   const { farms, user } = useApp();
+  const [tab, setTab] = useState("ledger");
   const [records, setRecords] = useState([]);
+  const [drives, setDrives] = useState([]);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
@@ -27,13 +30,17 @@ export default function HealthPanel({ limit = 10 }) {
     dose: "",
     batch: "",
     date: new Date().toISOString().slice(0, 10),
+    animals: "",
+    drive_id: "",
     notes: "",
   });
 
   const refresh = () =>
-    api
-      .health(getToken())
-      .then(({ records }) => setRecords(records || []))
+    Promise.all([api.health(getToken()), api.drives(getToken())])
+      .then(([{ records }, drivesData]) => {
+        setRecords(records || []);
+        setDrives(drivesData.drives || []);
+      })
       .catch((e) => setErr(reqError(e)));
 
   useEffect(() => {
@@ -67,9 +74,11 @@ export default function HealthPanel({ limit = 10 }) {
         ...form,
         date: form.date ? new Date(`${form.date}T00:00:00`).toISOString() : undefined,
         notes: form.notes.trim() || undefined,
+        animals: form.animals ? Number(form.animals) : undefined,
+        drive_id: form.drive_id || undefined,
       });
       setOk(`${healthIcon(record.record_type)} ${healthLabel(record.record_type)} recorded for ${record.name} ✅`);
-      setForm((f) => ({ ...f, name: "", disease: "", dose: "", batch: "", notes: "" }));
+      setForm((f) => ({ ...f, name: "", disease: "", dose: "", batch: "", notes: "", animals: "", drive_id: "" }));
       await refresh();
     } catch (ex) {
       setErr(reqError(ex));
@@ -80,13 +89,36 @@ export default function HealthPanel({ limit = 10 }) {
 
   return (
     <section>
+      <div className="flex items-center gap-2 mb-3">
+        <button
+          onClick={() => setTab("ledger")}
+          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
+            tab === "ledger" ? "bg-green-700 text-white" : "bg-white text-gray-600 border border-gray-200"
+          }`}
+        >
+          📋 Health Ledger
+        </button>
+        <button
+          onClick={() => setTab("drives")}
+          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
+            tab === "drives" ? "bg-green-700 text-white" : "bg-white text-gray-600 border border-gray-200"
+          }`}
+        >
+          💉 Vaccination Drives
+        </button>
+      </div>
+
+      {tab === "drives" ? (
+        <DrivesPanel />
+      ) : (
+      <>
       <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
         💉 Vaccination & Treatment — Health Ledger
       </h2>
       <p className="text-[11px] text-gray-500 bg-white border border-gray-100 rounded-xl px-3 py-2 mb-3 leading-snug">
         Every vaccination, treatment, deworming and mortality event is recorded here against the herd,
         appears instantly on the farm's health chart, and lands in the tamper-evident audit trail.
-        Coverage gaps (farms never vaccinated) show up automatically in village-level planning.
+        Link vaccinations to an active drive to count them toward live coverage.
       </p>
 
       <form onSubmit={submit} className="bg-white border border-gray-100 rounded-2xl p-4 mb-4 space-y-3">
@@ -179,6 +211,39 @@ export default function HealthPanel({ limit = 10 }) {
           </div>
         </div>
 
+        {form.record_type === "vaccination" && (
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs font-semibold text-gray-600">Animals covered</label>
+              <input
+                type="number"
+                min="1"
+                value={form.animals}
+                onChange={(e) => set("animals", e.target.value)}
+                placeholder="e.g. 45"
+                className="mt-1 w-full text-sm border border-gray-200 rounded-xl px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600">Count toward drive (optional)</label>
+              <select
+                value={form.drive_id}
+                onChange={(e) => set("drive_id", e.target.value)}
+                className="mt-1 w-full text-sm border border-gray-200 rounded-xl px-3 py-2 bg-white"
+              >
+                <option value="">— No drive —</option>
+                {drives
+                  .filter((d) => d.status === "active")
+                  .map((d) => (
+                    <option key={d.drive_id} value={d.drive_id}>
+                      {d.name} ({d.disease || "—"})
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+        )}
+
         <div>
           <label className="text-xs font-semibold text-gray-600">Notes</label>
           <input value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Animals covered, route, follow-up needed…" className="mt-1 w-full text-sm border border-gray-200 rounded-xl px-3 py-2" />
@@ -223,10 +288,15 @@ export default function HealthPanel({ limit = 10 }) {
               <p className="text-[11px] text-gray-500 mt-0.5">
                 {[r.dose, r.batch && `Batch ${r.batch}`, r.notes].filter(Boolean).join(" · ") || "—"}
               </p>
+              {r.drive_name && (
+                <p className="text-[11px] text-green-700 font-medium mt-1">📋 {r.drive_name}</p>
+              )}
             </div>
           </div>
         ))}
       </div>
+      </>
+      )}
     </section>
   );
 }

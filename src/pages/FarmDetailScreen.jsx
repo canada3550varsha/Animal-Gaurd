@@ -24,6 +24,7 @@ export default function FarmDetailScreen() {
   const [lang, setLang] = useState("en");
   const [expandedReportId, setExpandedReportId] = useState(null);
   const [health, setHealth] = useState([]);
+  const [drives, setDrives] = useState([]);
   const farm = farms.find((f) => f.farm_id === farmId);
 
   useEffect(() => {
@@ -38,6 +39,17 @@ export default function FarmDetailScreen() {
     api
       .health(getToken(), { farm_id: farmId })
       .then(({ records }) => active && setHealth(records || []))
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [farmId]);
+
+  useEffect(() => {
+    let active = true;
+    api
+      .drives(getToken())
+      .then(({ drives }) => active && setDrives(drives || []))
       .catch(() => {});
     return () => {
       active = false;
@@ -69,6 +81,15 @@ export default function FarmDetailScreen() {
     .filter((r) => r.farm_id === farm.farm_id)
     .slice()
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  // Drives whose target region covers this farm + whether this herd is covered.
+  const farmDrives = drives.filter(
+    (d) =>
+      d.coverage &&
+      d.district === farm.district &&
+      (!d.taluka || d.taluka === farm.taluka) &&
+      d.animal_category === farm.animal_category
+  );
 
   return (
     <div className="min-h-screen bg-surface">
@@ -289,11 +310,50 @@ export default function FarmDetailScreen() {
                     {[r.dose, r.batch && `Batch ${r.batch}`, r.disease && `🎯 ${r.disease}`].filter(Boolean).join(" · ") || "—"}
                   </p>
                   {r.notes && <p className="text-[11px] text-gray-500 mt-1 leading-snug">{r.notes}</p>}
+                  {r.drive_name && (
+                    <span className="inline-block mt-1.5 text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100 font-medium">
+                      📋 {r.drive_name}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
           )}
         </div>
+
+        {/* 💉 Vaccination Drives — coverage status for this herd */}
+        {farmDrives.length > 0 && (
+          <div className="bg-white rounded-2xl p-4 border border-gray-100">
+            <h3 className="font-semibold mb-3">💉 Vaccination Drives</h3>
+            <div className="space-y-2">
+              {farmDrives.map((d) => {
+                const covered = (d.coverage.covered_farm_ids || []).includes(farm.farm_id);
+                return (
+                  <div key={d.drive_id} className="border border-gray-100 rounded-xl p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-gray-900 truncate">
+                        📋 {d.name}
+                      </p>
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 ${
+                          covered ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {covered ? "✅ Covered" : "⚠ Not yet covered"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 mt-1">
+                      {d.disease || "—"} · {d.vaccine || "—"} · {d.animal_category}
+                    </p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">
+                      Drive coverage: {d.coverage.farm_coverage_pct}% farm · {d.coverage.animal_coverage_pct}% animal
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Map */}
         <div className="bg-white rounded-2xl p-4 border border-gray-100">
