@@ -12,6 +12,7 @@ export default function ReportSymptomsScreen() {
 
   const [selected, setSelected] = useState([]);
   const [affectedCount, setAffectedCount] = useState("");
+  const [deaths, setDeaths] = useState("");
   const [notes, setNotes] = useState("");
   const [photo, setPhoto] = useState(null); // { file, previewUrl }
   const [submitting, setSubmitting] = useState(false);
@@ -61,6 +62,7 @@ export default function ReportSymptomsScreen() {
         farm_id: farm.farm_id,
         symptoms: selected,
         affected_count: parseInt(affectedCount, 10) || 0,
+        deaths: deaths === "" ? undefined : parseInt(deaths, 10),
         notes,
         photo: photo?.file || null,
       });
@@ -82,6 +84,11 @@ export default function ReportSymptomsScreen() {
           <p className="text-sm text-gray-500 mb-1">
             {selected.length} symptom(s) reported for {farm.name}
           </p>
+          {(parseInt(affectedCount, 10) || 0) > 0 && (
+            <p className="text-xs text-gray-400 mb-1">
+              {affectedCount} affected · {deaths === "" ? 0 : deaths} dead
+            </p>
+          )}
           {vision && (
             <div className="text-left bg-gray-50 rounded-xl p-3 my-3 text-sm">
               <p className="text-xs text-gray-400 mb-1">AI Vision Analysis ({vision.confidence}% confidence)</p>
@@ -158,6 +165,25 @@ export default function ReportSymptomsScreen() {
               max={farm.herd_size}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent focus:border-accent outline-none"
             />
+          </div>
+
+          {/* Deaths */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Number of deaths (if any)
+            </label>
+            <input
+              type="number"
+              value={deaths}
+              onChange={(e) => setDeaths(e.target.value)}
+              placeholder="e.g. 2"
+              min="0"
+              max={affectedCount || farm.herd_size}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent focus:border-accent outline-none"
+            />
+            <p className="text-[11px] text-gray-400 mt-1">
+              Death count feeds the mortality rate &amp; trend on the vet dashboard.
+            </p>
           </div>
 
           {/* Photo upload + AI vision */}

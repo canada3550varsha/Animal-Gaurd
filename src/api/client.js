@@ -44,19 +44,26 @@ export const api = {
   farmEnv: (token, id) => request(`/farms/${id}/env`, { token }),
 
   reports: (token) => request("/reports", { token }),
-  createReport: (token, { farm_id, symptoms, affected_count, notes, photo }) => {
+  createReport: (token, { farm_id, symptoms, affected_count, deaths, notes, photo }) => {
     if (photo) {
       const fd = new FormData();
       fd.append("farm_id", farm_id);
       fd.append("symptoms", JSON.stringify(symptoms));
       fd.append("affected_count", String(affected_count));
+      if (deaths != null && deaths !== "") fd.append("deaths", String(deaths));
       if (notes) fd.append("notes", notes);
       fd.append("photo", photo);
       return request("/reports", { method: "POST", formData: fd, token });
     }
     return request("/reports", {
       method: "POST",
-      body: { farm_id, symptoms, affected_count, notes },
+      body: {
+        farm_id,
+        symptoms,
+        affected_count,
+        deaths: deaths != null && deaths !== "" ? Number(deaths) : undefined,
+        notes,
+      },
       token,
     });
   },

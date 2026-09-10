@@ -434,6 +434,11 @@ export default function FarmDetailScreen() {
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">
                         {r.affected_count || 0} affected {r.animal_type}
                       </span>
+                      {(Number(r.deaths) || 0) > 0 && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-800 text-white font-medium">
+                          ⚰️ {r.deaths} death{r.deaths !== 1 ? "s" : ""}
+                        </span>
+                      )}
                       {r.source === "ai_auto" ? (
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-medium">
                           🤖 AI Alert (auto-sensed)

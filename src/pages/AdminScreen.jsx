@@ -65,6 +65,7 @@ export default function AdminScreen() {
     } else if (a.action === "report_submitted") {
       lines.push(`Farm: ${data.farm_name || data.farm_id} (${data.farm_id})`);
       lines.push(`🐾 ${(data.symptoms || []).join(", ")} · ${data.affected_count} animal(s) affected`);
+      if (data.deaths) lines.push(`⚰️ Mortality: ${data.deaths} death${data.deaths !== 1 ? "s" : ""}`);
       lines.push(`📍 ${data.village}, ${data.taluka}, ${data.district}`);
       if (data.notes || data.has_photo) {
         lines.push([data.has_photo ? "📷 photo" : null, data.notes || null].filter(Boolean).join(" · "));

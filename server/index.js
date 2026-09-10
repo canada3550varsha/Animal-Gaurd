@@ -184,7 +184,7 @@ function validateFarm(body) {
 }
 
 function validateReport(body, farm) {
-  const { symptoms, affected_count, notes } = body || {};
+  const { symptoms, affected_count, notes, deaths } = body || {};
   const errors = [];
   const allowed = new Set(SYMPTOMS_BY_CATEGORY[farm.animal_category] || []);
   if (!Array.isArray(symptoms) || symptoms.length === 0) errors.push("symptoms required");
@@ -196,6 +196,11 @@ function validateReport(body, farm) {
   }
   if (!Number.isInteger(affected_count) || affected_count < 0 || affected_count > farm.herd_size)
     errors.push("affected_count out of range");
+  if (deaths !== undefined) {
+    const maxDeaths = Number.isInteger(affected_count) ? Math.min(affected_count, farm.herd_size) : farm.herd_size;
+    if (!Number.isInteger(deaths) || deaths < 0 || deaths > maxDeaths)
+      errors.push("deaths out of range (0..affected)");
+  }
   if (notes !== undefined && (typeof notes !== "string" || notes.length > NOTES_MAX))
     errors.push("notes too long or invalid");
   return errors;
@@ -722,13 +727,16 @@ async function parseReportSymptoms(r) {
 }
 
 app.post("/api/reports", authRequired, upload.single("photo"), async (req, res) => {
-  const { farm_id, affected_count, notes } = req.body;
+  const { farm_id, affected_count, notes, deaths } = req.body;
   const symptoms = await parseReportSymptoms(req.body.symptoms);
   const farm = DB.farms.find((f) => f.farm_id === farm_id);
   if (!farm) return res.status(404).json({ error: "Farm not found" });
   if (!canAccessFarm(farm, req.user)) return res.status(403).json({ error: "Forbidden" });
 
-  const errors = validateReport({ ...req.body, symptoms, affected_count: affected_count === undefined ? undefined : Number(affected_count) }, farm);
+  const errors = validateReport(
+    { ...req.body, symptoms, affected_count: affected_count === undefined ? undefined : Number(affected_count), deaths: deaths === undefined || deaths === "" ? undefined : Number(deaths) },
+    farm
+  );
   if (errors.length) return res.status(400).json({ error: errors.join("; ") });
 
   if (reportRateLimited(farm_id)) {
@@ -747,6 +755,7 @@ app.post("/api/reports", authRequired, upload.single("photo"), async (req, res) 
     animal_type: farm.animal_type,
     symptoms,
     affected_count: Number(affected_count) || 0,
+    deaths: deaths === undefined || deaths === "" ? null : Math.max(0, Number(deaths) || 0),
     notes: notes || undefined,
     lat: farm.lat,
     lng: farm.lng,
@@ -768,6 +777,7 @@ app.post("/api/reports", authRequired, upload.single("photo"), async (req, res) 
     animal_category: farm.animal_category,
     symptoms,
     affected_count: report.affected_count,
+    deaths: report.deaths,
     notes: report.notes || null,
     has_photo: report.has_photo ? true : false,
   });

@@ -145,6 +145,49 @@ export default function DashboardScreen() {
     [alerts, seenAt]
   );
 
+  // ⚰️ Structured-mortality stats from the deaths field on farmer reports.
+  const mortality = useMemo(() => {
+    const deaths = (r) => Number(r.deaths) || 0;
+    const WITHIN = (r, days) => new Date(r.created_at).getTime() > now - days * 86400000;
+    const in7 = reports.filter((r) => WITHIN(r, 7));
+    const in14 = reports.filter((r) => WITHIN(r, 14));
+    const totalDeaths = (list) => list.reduce((s, r) => s + deaths(r), 0);
+    const totalAffected = (list) => list.reduce((s, r) => s + (Number(r.affected_count) || 0), 0);
+    // Crude mortality rate = deaths / affected across reports that recorded deaths.
+    const d = totalDeaths(in7);
+    const a = totalAffected(in7.filter((r) => deaths(r) > 0));
+    const trend = [];
+    for (let i = 6; i >= 0; i--) {
+      const dayStart = new Date(now);
+      dayStart.setHours(0, 0, 0, 0);
+      dayStart.setDate(dayStart.getDate() - i);
+      const dayEnd = dayStart.getTime() + 86400000;
+      const count = in7
+        .filter((r) => {
+          const t = new Date(r.created_at).getTime();
+          return t >= dayStart.getTime() && t < dayEnd;
+        })
+        .reduce((s, r) => s + deaths(r), 0);
+      const label = dayStart.toLocaleDateString("en-IN", { weekday: "short" });
+      trend.push({ label, count });
+    }
+    const byVillage = {};
+    for (const r of in14) {
+      const key = r.village || "Unknown";
+      byVillage[key] = byVillage[key] || { village: key, deaths: 0, farms: new Set(), affected: 0 };
+      byVillage[key].deaths += deaths(r);
+      byVillage[key].farms.add(r.farm_id);
+      byVillage[key].affected += Number(r.affected_count) || 0;
+    }
+    const villages = Object.values(byVillage)
+      .map((v) => ({ ...v, farms: v.farms.size }))
+      .filter((v) => v.deaths > 0)
+      .sort((x, y) => y.deaths - x.deaths);
+    const maxVillage = Math.max(1, ...villages.map((v) => v.deaths));
+    const maxTrend = Math.max(1, ...trend.map((t) => t.count));
+    return { d, a, rate: a ? Math.round((d / a) * 1000) / 10 : 0, trend, villages, maxVillage, maxTrend };
+  }, [reports, now]);
+
   // id -> source for sensor-detected tagging on alerts.
   const reportSource = useMemo(() => {
     const map = {};
@@ -217,6 +260,75 @@ export default function DashboardScreen() {
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Programme Impact</h2>
           <ImpactMetrics />
         </section>
+
+        {/* ⚰️ Mortality rate & trend (structured deaths field) */}
+        {mortality.d > 0 && (
+          <section>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              Mortality &amp; Trend (last 7 days)
+            </h2>
+            <div className="bg-white rounded-2xl p-4 border border-gray-100">
+              <div className="flex items-center justify-around gap-2 text-center">
+                <div>
+                  <p className="text-2xl font-bold text-red-600">{mortality.d}</p>
+                  <p className="text-[10px] text-gray-500">deaths (7d)</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-amber-600">{mortality.rate}%</p>
+                  <p className="text-[10px] text-gray-500">crude mortality rate</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-800">{Math.max(mortality.a, mortality.d)}</p>
+                  <p className="text-[10px] text-gray-500">affected, deaths reported</p>
+                </div>
+              </div>
+
+              {/* 7-day trend */}
+              <div className="mt-4">
+                <p className="text-[11px] font-semibold text-gray-500 mb-2">Daily deaths — 7-day trend</p>
+                <div className="flex items-end gap-1.5 h-20">
+                  {mortality.trend.map((t, i) => (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      <span className="text-[10px] font-semibold text-gray-700">
+                        {t.count > 0 ? t.count : ""}
+                      </span>
+                      <div
+                        className={`w-full rounded-t ${
+                          t.count === 0 ? "h-1 bg-gray-100" : t.count >= mortality.maxTrend ? "bg-red-500" : "bg-orange-400"
+                        }`}
+                        style={{ height: `${t.count === 0 ? 4 : Math.max(8, (t.count / mortality.maxTrend) * 64)}px` }}
+                      />
+                      <span className="text-[9px] text-gray-400">{t.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Per-village deaths */}
+              <div className="mt-4">
+                <p className="text-[11px] font-semibold text-gray-500 mb-2">Deaths by village (14d)</p>
+                <div className="space-y-2">
+                  {mortality.villages.map((v) => (
+                    <div key={v.village}>
+                      <div className="flex items-center justify-between text-[11px] mb-0.5">
+                        <span className="text-gray-700 font-medium truncate">
+                          {v.village} · {v.farms} farm{v.farms !== 1 ? "s" : ""}
+                        </span>
+                        <span className="text-gray-500">{v.deaths} dead</span>
+                      </div>
+                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${v.deaths >= mortality.maxVillage ? "bg-red-500" : "bg-orange-400"}`}
+                          style={{ width: `${(v.deaths / mortality.maxVillage) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* 💉 Vaccination & treatment health ledger (vet records; farms + audit reflect instantly) */}
         <HealthPanel />
@@ -613,6 +725,11 @@ export default function DashboardScreen() {
                           <span className="text-[10px] font-medium text-red-600 bg-red-50 px-1.5 py-0.5 rounded">
                             {latest.affected_count || 0} affected
                           </span>
+                          {(Number(latest.deaths) || 0) > 0 && (
+                            <span className="text-[10px] font-medium text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded">
+                              ⚰️ {latest.deaths}
+                            </span>
+                          )}
                           <span className="text-[10px] text-gray-400 truncate">
                             {(latest.symptoms || []).map((s) => SYMPTOM_LABEL[s] || s).slice(0, 2).join(", ")} · {formatTime(latest.created_at)}
                           </span>
