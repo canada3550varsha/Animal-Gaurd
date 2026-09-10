@@ -498,13 +498,15 @@ function WalkthroughInner() {
             >
               ← Back
             </button>
-            <button
-              onClick={nextAction}
-              disabled={!canAdvance}
-              className="px-6 py-2.5 bg-primary text-white rounded-xl font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
-            >
-              {busy ? "Working…" : "Next ▶"}
-            </button>
+            {stepIdx < STEPS.length - 1 && (
+              <button
+                onClick={nextAction}
+                disabled={!canAdvance}
+                className="px-6 py-2.5 bg-primary text-white rounded-xl font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                {busy ? "Working…" : "Next ▶"}
+              </button>
+            )}
           </div>
         </div>
 

@@ -3,10 +3,30 @@ import { useNavigate } from "react-router-dom";
 import { api, getToken, reqError } from "../api/client.js";
 
 const ACTION_LABEL = {
-  register_farm: "Register Farm",
-  dispatch_vet: "Dispatch Vet",
-  send_advisory: "Send Advisory",
+  register_farm: { label: "Register Farm", icon: "🏡" },
+  report_submitted: { label: "Report Submitted", icon: "🩺" },
+  auto_detect: { label: "AI Auto-Detect (Sensed)", icon: "🛰️" },
+  dispatch_vet: { label: "Dispatch Vet", icon: "🚓" },
+  send_advisory: { label: "Send Advisory", icon: "📢" },
 };
+
+const ACTOR_LABEL = {
+  u_farmer1: "Farmer 3210",
+  u_vet1: "Dr. Anil Veterinary",
+  u_admin1: "Admin Officer",
+  "system:autonomous": "Automated sensor scan",
+};
+
+function timeAgo(ts) {
+  const d = new Date(ts).getTime();
+  if (!Number.isFinite(d)) return "";
+  const mins = Math.max(0, Math.round((Date.now() - d) / 60000));
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs} hr ago`;
+  return `${Math.round(hrs / 24)} days ago`;
+}
 
 export default function AdminScreen() {
   const navigate = useNavigate();
@@ -34,12 +54,30 @@ export default function AdminScreen() {
 
   const renderAction = (a) => {
     const data = a.data || {};
-    const label = ACTION_LABEL[a.action] || a.action;
-    const detail =
-      a.action === "register_farm"
-        ? `Farm ${data.farm_id || "—"}`
-        : `${data.report_count} cases / ${data.farm_count} farms in ${data.village || "—"} (${data.animal_category || ""})`;
-    return { label, detail };
+    const meta = ACTION_LABEL[a.action] || { label: a.action, icon: "📄" };
+    const lines = [];
+    if (a.action === "register_farm") {
+      lines.push(`Farm: ${data.farm_name || data.farm_id} (${data.farm_id})`);
+      lines.push(`${data.animal_type || "—"} · herd ${data.herd_size ?? "—"}`);
+      lines.push(`📍 ${data.village}, ${data.taluka}, ${data.district}`);
+    } else if (a.action === "report_submitted") {
+      lines.push(`Farm: ${data.farm_name || data.farm_id} (${data.farm_id})`);
+      lines.push(`🐾 ${(data.symptoms || []).join(", ")} · ${data.affected_count} animal(s) affected`);
+      lines.push(`📍 ${data.village}, ${data.taluka}, ${data.district}`);
+      if (data.notes || data.has_photo) {
+        lines.push([data.has_photo ? "📷 photo" : null, data.notes || null].filter(Boolean).join(" · "));
+      }
+    } else if (a.action === "auto_detect") {
+      lines.push(`Farm: ${data.farm_name || data.farm_id} (${data.farm_id})`);
+      lines.push(`🦠 ${data.disease} · risk score ${data.score}/100 · env risk ${data.env_risk}/25`);
+      lines.push(`📍 ${data.village}, ${data.taluka}, ${data.district}`);
+      if (data.sensing_reading_id) lines.push(`Sensing reading: ${data.sensing_reading_id}`);
+    } else {
+      lines.push(`${data.report_count} case(s) · ${data.farm_count} farm(s) · ${data.animal_category || "—"}`);
+      lines.push(`📍 ${data.village}`);
+      lines.push(`Cluster ${data.cluster_id} · ${(data.report_ids || []).length} report(s) covered`);
+    }
+    return { label: meta.label, icon: meta.icon, lines };
   };
 
   return (
@@ -98,21 +136,27 @@ export default function AdminScreen() {
                     .slice()
                     .reverse()
                     .map((e) => {
-                      const { label, detail } = renderAction(e);
+                      const { label, icon, lines } = renderAction(e);
                       const shortHash = e.hash.slice(0, 10);
+                      const when = new Date(e.ts).toLocaleString();
                       return (
                         <div key={e.seq} className="bg-white rounded-xl border border-gray-100 p-3">
                           <div className="flex items-center justify-between">
                             <span className="font-semibold text-gray-900 text-sm">
-                              #{e.seq} · {label}
+                              #{e.seq} · {icon} {label}
                             </span>
-                            <span className="text-[10px] text-gray-400">
-                              {new Date(e.ts).toLocaleString()}
-                            </span>
+                            <span className="text-[10px] text-gray-400 font-mono">{shortHash}</span>
                           </div>
-                          <p className="text-xs text-gray-600 mt-0.5">{detail}</p>
-                          <p className="text-[10px] text-gray-400 mt-1 font-mono">
-                            actor: {e.actor} · hash: {shortHash}…
+                          <p className="text-[11px] text-gray-500 mt-0.5">
+                            📅 {when} <span className="text-gray-400">({timeAgo(e.ts)})</span>
+                          </p>
+                          <div className="text-xs text-gray-600 mt-1 space-y-0.5">
+                            {lines.map((l, i) => (
+                              <p key={i}>{l}</p>
+                            ))}
+                          </div>
+                          <p className="text-[10px] text-gray-400 mt-1.5 font-mono">
+                            by {ACTOR_LABEL[e.actor] || e.actor}
                           </p>
                         </div>
                       );

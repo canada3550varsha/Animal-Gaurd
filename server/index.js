@@ -601,7 +601,16 @@ app.post("/api/farms", authRequired, async (req, res) => {
       persist();
     }
   });
-  DB.audit = appendAudit(DB.audit, req.user.id, "register_farm", { farm_id: farm.farm_id });
+  DB.audit = appendAudit(DB.audit, req.user.id, "register_farm", {
+    farm_id: farm.farm_id,
+    farm_name: farm.name,
+    village: farm.village,
+    taluka: farm.taluka,
+    district: farm.district,
+    animal_category: farm.animal_category,
+    animal_type: farm.animal_type,
+    herd_size: farm.herd_size,
+  });
   persist();
   res.status(201).json({ farm: sanitizeFarm(farm, req.user) });
 });
@@ -741,6 +750,19 @@ app.post("/api/reports", authRequired, upload.single("photo"), async (req, res) 
     ...(req.file && req.file.buffer ? { has_photo: true } : {}),
   };
   DB.reports.push(report);
+  DB.audit = appendAudit(DB.audit, req.user.id, "report_submitted", {
+    report_id: report.id,
+    farm_id,
+    farm_name: farm.name,
+    village: farm.village,
+    taluka: farm.taluka,
+    district: farm.district,
+    animal_category: farm.animal_category,
+    symptoms,
+    affected_count: report.affected_count,
+    notes: report.notes || null,
+    has_photo: report.has_photo ? true : false,
+  });
   persist();
   res.status(201).json({ report });
 });
@@ -1039,7 +1061,10 @@ async function autonomousScan() {
       autoCooldown.set(key, now());
       DB.audit = appendAudit(DB.audit, "system:autonomous", "auto_detect", {
         farm_id: farm.farm_id,
+        farm_name: farm.name,
         village: farm.village,
+        taluka: farm.taluka,
+        district: farm.district,
         disease: hit.name,
         score: hit.score,
         report_id: report.id,
