@@ -15,7 +15,8 @@ import {
 import { reqError } from "../api/client.js";
 
 // Steps of the conversation. Answers are collected one at a time.
-const STEPS = ["farm", "lang", "count", "symptoms", "notes", "review"];
+// Language comes FIRST so every question can be asked in the farmer's language.
+const STEPS = ["lang", "farm", "count", "symptoms", "notes", "review"];
 
 function pickVoice(langTts) {
   const voices = window.speechSynthesis?.getVoices?.() || [];
@@ -23,14 +24,70 @@ function pickVoice(langTts) {
   return voices.find((v) => v.lang.toLowerCase().startsWith(prefix)) || null;
 }
 
+// Infer the animal type the farmer mentioned in a spoken farm name.
+function inferFarmType(text) {
+  const t = (text || "").toLowerCase();
+  const dict = {
+    cattle: ["cattle", "cow", "gaay", "गाय", "गोवंश", "धेनु"],
+    buffalo: ["buffalo", "bhai", "भैंस"],
+    goat: ["goat", "bakra", "बकरी", "शेळी"],
+    sheep: ["sheep", "bhed", "मेंढा", "मेंढी"],
+    chicken: ["chicken", "hen", "layer", "broiler", "मुर्गी", "मुर्गा", "कोंबडी"],
+    duck: ["duck", "बदक", "बत्तख"],
+    turkey: ["turkey", "टर्की"],
+  };
+  for (const [type, words] of Object.entries(dict)) {
+    if (words.some((w) => t.includes(w))) return type;
+  }
+  return "cattle"; // demo default
+}
+
+function categoryOf(type) {
+  return type in ANIMAL_ICONS.poultry ? "poultry" : "large_livestock";
+}
+
+function normalizeName(s) {
+  return (s || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+}
+
+// Match the spoken farm name against the farmer's registered farms.
+function matchFarm(farms, spoken) {
+  const q = normalizeName(spoken);
+  if (!q) return null;
+  const whole = farms.find((f) => {
+    const n = normalizeName(f.name);
+    return n.includes(q) || q.includes(n);
+  });
+  if (whole) return whole;
+  const words = q.split(/\s+/).filter((w) => w.length >= 3);
+  for (const w of words) {
+    const hit = farms.find((f) => normalizeName(f.name).includes(w));
+    if (hit) return hit;
+  }
+  return null;
+}
+
+// Browser GPS when available, otherwise the demo's seeded Pune cluster.
+function locateFarm() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => resolve(null),
+      { timeout: 6000 }
+    );
+  });
+}
+
 export default function VoiceReportScreen() {
   const { farmId: urlFarmId } = useParams();
   const navigate = useNavigate();
-  const { farms, addReport } = useApp();
+  const { farms, addReport, addFarm } = useApp();
 
   const [farmId, setFarmId] = useState(urlFarmId || "");
   const [lang, setLang] = useState("en");
-  const [stepIdx, setStepIdx] = useState(urlFarmId ? 1 : 0);
+  const [stepIdx, setStepIdx] = useState(0);
+  const [busyFarm, setBusyFarm] = useState(false);
 
   // farmer's answers so far
   const [countAns, setCountAns] = useState("");
@@ -178,9 +235,57 @@ export default function VoiceReportScreen() {
 
   const activeAnswer = step === "count" ? countAns : step === "symptoms" ? symptomAns : notesAns;
 
+  // The farmer spoke a farm name. Match a registered farm, or register a NEW one.
+  const handleFarmName = async (name) => {
+    if (advancingRef.current) return;
+    const clean = name.trim();
+    if (!clean) return;
+    const existing = matchFarm(farms, clean);
+    if (existing) {
+      advancingRef.current = true;
+      setFarmId(existing.farm_id);
+      setLastAnswer(existing.name);
+      setError("");
+      next([]);
+      resetAdvance();
+      return;
+    }
+    if (busyFarm) return;
+    setBusyFarm(true);
+    try {
+      const type = inferFarmType(clean);
+      const pos = await locateFarm();
+      const created = await addFarm({
+        name: clean,
+        animal_category: categoryOf(type),
+        animal_type: type,
+        herd_size: 1,
+        village: "Wadgaon Sheri",
+        taluka: "Haveli",
+        district: "Pune",
+        lat: pos?.lat ?? 18.452,
+        lng: pos?.lng ?? 73.878,
+      });
+      advancingRef.current = true;
+      setFarmId(created.farm_id);
+      setLastAnswer(created.name);
+      setError("");
+      next([]);
+      resetAdvance();
+    } catch (err) {
+      setError(reqError(err));
+    } finally {
+      setBusyFarm(false);
+    }
+  };
+
   const applyAnswer = (raw) => {
     if (advancingRef.current) return;
     const answer = raw.trim();
+    if (step === "farm") {
+      handleFarmName(answer);
+      return;
+    }
     if (!answer && step === "notes") {
       // skipped — still move on
       next([]);
@@ -247,7 +352,11 @@ export default function VoiceReportScreen() {
       setError("Could not recognise a symptom. Tap the mic and try again, or pick from the list below.");
       return;
     }
-    setStepIdx((i) => Math.min(i + 1, STEPS.length - 1));
+    const from = STEPS.indexOf(step);
+    let nxt = from + 1;
+    // Entered from a specific farm page -> language straight into the questions.
+    if (urlFarmId && STEPS[nxt] === "farm") nxt += 1;
+    setStepIdx(Math.min(nxt, STEPS.length - 1));
   };
 
   const computePayload = () => {
@@ -363,12 +472,6 @@ export default function VoiceReportScreen() {
       <main className="max-w-lg mx-auto px-4 py-6">
         {/* conversation bubbles */}
         <div className="space-y-3">
-          {step === "farm" && (
-            <Bubble who="app" text={t.pickFarm} onSpeak={() => speak(t.pickFarm)} />
-          )}
-          {step === "lang" && (
-            <Bubble who="app" text={t.pickLang} onSpeak={() => speak(t.pickLang)} />
-          )}
           {(step === "farm" || step === "lang" || step === "count" || step === "symptoms" || step === "notes") && (
             <Bubble
               who="app"
@@ -392,22 +495,51 @@ export default function VoiceReportScreen() {
         {/* step controls */}
         <div className="mt-6 space-y-4">
           {step === "farm" && (
-            <div className="grid grid-cols-1 gap-2">
-              {farms.map((f) => (
-                <button
-                  key={f.farm_id}
-                  onClick={() => {
-                    setFarmId(f.farm_id);
-                    next();
-                  }}
-                  className={`flex items-center justify-between px-4 py-3 rounded-xl border bg-white transition-colors ${
-                    farmId === f.farm_id ? "border-primary ring-2 ring-primary/30" : "border-gray-200"
-                  }`}
-                >
-                  <span className="font-medium text-sm">{f.name}</span>
-                  <span className="text-gray-400 text-xs">{ANIMAL_ICONS[f.animal_category]?.[f.animal_type] || "🐾"}</span>
-                </button>
-              ))}
+            <div className="space-y-4">
+              <MicControl
+                listening={listening}
+                onToggle={startListening}
+                prompt={listening ? "Listening… say the farm name" : "Tap the mic and say the farm name"}
+                note={sttNote(lang)}
+              >
+                {(lastAnswer || interim) && (
+                  <p className="text-center text-[11px] text-gray-500">
+                    I heard: <span className="font-medium text-gray-700">“{interim || lastAnswer}”</span>
+                  </p>
+                )}
+                <TypePad
+                  speechOk={speechOk}
+                  value={typedOverride}
+                  onChange={setTypedOverride}
+                  placeholder="Farm name — registered or new"
+                />
+                {busyFarm && (
+                  <p className="text-center text-xs text-primary font-medium">Registering your farm…</p>
+                )}
+              </MicControl>
+
+              <div>
+                <p className="text-xs text-gray-500 mb-2">{t.farmList}</p>
+                <div className="grid grid-cols-1 gap-2">
+                  {farms.map((f) => (
+                    <button
+                      key={f.farm_id}
+                      onClick={() => {
+                        setFarmId(f.farm_id);
+                        next();
+                      }}
+                      className={`flex items-center justify-between px-4 py-3 rounded-xl border bg-white transition-colors ${
+                        farmId === f.farm_id ? "border-primary ring-2 ring-primary/30" : "border-gray-200"
+                      }`}
+                    >
+                      <span className="font-medium text-sm">{f.name}</span>
+                      <span className="text-gray-400 text-xs">{ANIMAL_ICONS[f.animal_category]?.[f.animal_type] || "🐾"}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <p className="text-[11px] text-gray-400 text-center">{t.farmNewHint}</p>
             </div>
           )}
 
@@ -419,8 +551,10 @@ export default function VoiceReportScreen() {
                     key={l.code}
                     onClick={() => {
                       setLang(l.code);
-                      setStepIdx((i) => i + 1);
-                      setTimeout(() => speak(TEXT(l.code).qCount), 250);
+                      const from = STEPS.indexOf("lang");
+                      let nxt = from + 1;
+                      if (urlFarmId && STEPS[nxt] === "farm") nxt += 1;
+                      setStepIdx(nxt);
                     }}
                     className={`py-3 rounded-xl border bg-white text-sm font-semibold transition-colors ${
                       lang === l.code ? "border-primary ring-2 ring-primary/30 text-primary" : "border-gray-200 text-gray-700"
@@ -440,45 +574,24 @@ export default function VoiceReportScreen() {
 
           {(step === "count" || step === "symptoms" || step === "notes") && (
             <>
-              {/* mic */}
-              <div className="flex justify-center">
-                <button
-                  onClick={startListening}
-                  className={`relative w-20 h-20 rounded-full shadow-lg transition-all ${
-                    listening ? "bg-red-500 animate-pulse" : "bg-primary hover:bg-primary-dark"
-                  } text-white text-3xl flex items-center justify-center`}
-                >
-                  🎤
-                </button>
-              </div>
-              <p className="text-center text-xs text-gray-400">
-                {listening ? "Listening… speak now" : "Tap the mic and speak your answer"}
-              </p>
-              {sttNote(lang) && (
-                <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-                  🎧 {sttNote(lang)}
-                </p>
-              )}
-              {(lastAnswer || interim) && (
-                <p className="text-center text-[11px] text-gray-500">
-                  I heard: <span className="font-medium text-gray-700">“{interim || lastAnswer}”</span>
-                </p>
-              )}
-
-              {/* fallback typing for unsupported browsers */}
-              {!speechOk && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-                  <p className="text-xs text-amber-700 mb-2">
-                    Voice not available in this browser — please type your answer.
+              <MicControl
+                listening={listening}
+                onToggle={startListening}
+                prompt={listening ? "Listening… speak now" : "Tap the mic and speak your answer"}
+                note={sttNote(lang)}
+              >
+                {(lastAnswer || interim) && (
+                  <p className="text-center text-[11px] text-gray-500">
+                    I heard: <span className="font-medium text-gray-700">“{interim || lastAnswer}”</span>
                   </p>
-                  <input
-                    value={typedOverride}
-                    onChange={(e) => setTypedOverride(e.target.value)}
-                    placeholder={step === "count" ? "e.g. 5" : step === "symptoms" ? "e.g. fever" : "optional"}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
-                  />
-                </div>
-              )}
+                )}
+                <TypePad
+                  speechOk={speechOk}
+                  value={typedOverride}
+                  onChange={setTypedOverride}
+                  placeholder={step === "count" ? "e.g. 5" : step === "symptoms" ? "e.g. fever" : "optional"}
+                />
+              </MicControl>
 
               {/* detected symptom chips */}
               {step === "symptoms" && detectedSymptoms.length > 0 && (
@@ -559,13 +672,15 @@ export default function VoiceReportScreen() {
             )}
             {step === "farm" && (
               <button
-                onClick={() => next()}
-                disabled={!canContinue}
+                onClick={() => applyAnswer(typedOverride || lastAnswer)}
+                disabled={!canContinue && !typedOverride.trim() && !lastAnswer}
                 className={`flex-1 py-3 rounded-xl font-semibold transition-colors ${
-                  canContinue ? "bg-primary text-white" : "bg-gray-200 text-gray-400"
+                  canContinue || typedOverride.trim() || lastAnswer
+                    ? "bg-primary text-white"
+                    : "bg-gray-200 text-gray-400"
                 }`}
               >
-                Continue
+                {typedOverride.trim() || lastAnswer ? "Use this farm →" : "Continue"}
               </button>
             )}
             {step === "lang" && <div className="flex-1" />}
@@ -633,6 +748,47 @@ function Row({ k, v }) {
     <div className="flex justify-between gap-3 text-sm">
       <span className="text-gray-400">{k}</span>
       <span className="text-gray-800 font-medium text-right">{v}</span>
+    </div>
+  );
+}
+
+function MicControl({ listening, onToggle, prompt, note, children }) {
+  return (
+    <>
+      <div className="flex justify-center">
+        <button
+          onClick={onToggle}
+          className={`relative w-20 h-20 rounded-full shadow-lg transition-all ${
+            listening ? "bg-red-500 animate-pulse" : "bg-primary hover:bg-primary-dark"
+          } text-white text-3xl flex items-center justify-center`}
+        >
+          🎤
+        </button>
+      </div>
+      <p className="text-center text-xs text-gray-400">{prompt}</p>
+      {note && (
+        <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+          🎧 {note}
+        </p>
+      )}
+      {children}
+    </>
+  );
+}
+
+function TypePad({ speechOk, value, onChange, placeholder }) {
+  if (speechOk) return null;
+  return (
+    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+      <p className="text-xs text-amber-700 mb-2">
+        Voice not available in this browser — please type your answer.
+      </p>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+      />
     </div>
   );
 }

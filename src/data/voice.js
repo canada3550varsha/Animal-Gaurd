@@ -18,10 +18,22 @@ export const TEXT = (lang) => ({
         : "Hello! I will ask a few short questions about your animals. Answer by voice, in your own words.",
   pickFarm:
     lang === "hi"
-      ? "पहले बताइए, किस फार्म / खेत के जानवरों की बात है? नीचे चुने।"
+      ? "पहले बताइए, किस फार्म / खेत के जानवरों की बात है? फार्म का नाम बोलिए या नीचे चुनिए।"
       : lang === "mr"
-        ? "आधी सांगा, कोणत्या शेतातील जनावरांचा प्रश्न आहे? खाली निवडा."
-        : "First, which farm are these animals on? Tap to select.",
+        ? "आधी सांगा, कोणत्या शेतातील जनावरांचा प्रश्न आहे? शेताचे नाव बोला किंवा खाली निवडा."
+        : "First, which farm are these animals on? Say the farm name or tap one below.",
+  farmList:
+    lang === "hi"
+      ? "आपके पंजीकृत फार्म (टैप करें):"
+      : lang === "mr"
+        ? "तुमची नोंदणीकृत शेते (टॅप करा):"
+        : "Your registered farms (tap):",
+  farmNewHint:
+    lang === "hi"
+      ? "नया फार्म है? सिर्फ़ उसका नाम बोलिए — जैसे “मेरा बकरी फार्म” — मैं उसे अपने आप पंजीकृत कर दूँगा।"
+      : lang === "mr"
+        ? "नवीन शेत आहे? फक्त त्याचे नाव बोला — उदा. “माझं बकरी फार्म” — मी ते आपोआप नोंदवतो."
+        : "New farm? Just say its name — e.g. “my goat farm” — I'll register it automatically.",
   pickLang:
     lang === "hi"
       ? "आप भाषा चुनें — हिंदी, मराठी या अंग्रेज़ी।"
