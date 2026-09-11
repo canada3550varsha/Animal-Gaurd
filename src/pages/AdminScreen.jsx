@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, getToken, reqError } from "../api/client.js";
+import EscalationPanel from "../components/EscalationPanel.jsx";
 
 const ACTION_LABEL = {
   register_farm: { label: "Register Farm", icon: "🏡" },
@@ -12,12 +13,15 @@ const ACTION_LABEL = {
   vaccination_drive: { label: "Vaccination Drive", icon: "🚀" },
   sample_collected: { label: "Lab Sample Collected", icon: "🧪" },
   lab_result: { label: "Lab Result", icon: "🔬" },
+  escalation: { label: "Case Escalated", icon: "🔺" },
+  escalation_followup: { label: "Escalation Follow-up", icon: "🔁" },
 };
 
 const ACTOR_LABEL = {
   u_farmer1: "Farmer 3210",
   u_vet1: "Dr. Anil Veterinary",
   u_admin1: "Admin Officer",
+  u_lab1: "Lab Analyst",
   "system:autonomous": "Automated sensor scan",
 };
 
@@ -37,6 +41,7 @@ export default function AdminScreen() {
   const [audit, setAudit] = useState(null); // { integrity, log }
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [clusters, setClusters] = useState([]);
 
   useEffect(() => {
     let active = true;
@@ -51,6 +56,10 @@ export default function AdminScreen() {
         if (active) setLoading(false);
       }
     })();
+    api
+      .clusters(getToken())
+      .then((d) => active && setClusters(d.clusters || []))
+      .catch(() => {});
     return () => {
       active = false;
     };
@@ -106,6 +115,17 @@ export default function AdminScreen() {
       if (data.pathogen) lines.push(`🦠 Pathogen: ${data.pathogen}`);
       lines.push(`📍 ${data.village}, ${data.taluka}, ${data.district}`);
       if (data.remarks) lines.push(`📝 ${data.remarks}`);
+    } else if (a.action === "escalation") {
+      const LEVEL_TAG = { officer: "🏛️ District Officer", referral: "🏥 Dispensary Referral", hospital: "🚑 Vet Hospital" };
+      lines.push(`${LEVEL_TAG[data.level] || data.level} — ${data.cluster_id}`);
+      lines.push(`📍 ${data.village}, ${data.district} · ${data.report_count} case(s) · ${data.farm_count} farm(s)`);
+      lines.push(`→ ${data.target}`);
+      if (data.notes) lines.push(`📝 ${data.notes}`);
+    } else if (a.action === "escalation_followup") {
+      lines.push(`Escalation ${data.escalation_id} · cluster ${data.cluster_id}`);
+      lines.push(`📍 ${data.village}, ${data.district}`);
+      lines.push(`Status → ${data.status.toUpperCase()}`);
+      if (data.note) lines.push(`📝 ${data.note}`);
     } else {
       lines.push(`${data.report_count} case(s) · ${data.farm_count} farm(s) · ${data.animal_category || "—"}`);
       lines.push(`📍 ${data.village}`);
@@ -117,17 +137,17 @@ export default function AdminScreen() {
   return (
     <div className="min-h-screen bg-surface">
       <header className="bg-gray-900 text-white px-4 py-4 shadow-md">
-        <div className="max-w-lg mx-auto flex items-center gap-3">
+        <div className="max-w-7xl mx-auto flex items-center gap-3">
           <button onClick={() => navigate("/")} className="text-xl">←</button>
           <div>
-            <h1 className="text-lg font-bold">Admin — Audit Trail</h1>
-            <p className="text-xs text-gray-400">Tamper-evident SHA-256 hash chain</p>
+            <h1 className="text-lg font-bold">Admin — District Officer Console</h1>
+            <p className="text-xs text-gray-400">Case escalations · tamper-evident SHA-256 audit chain</p>
           </div>
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-6 space-y-4">
-        {loading && <p className="text-gray-400 text-center py-10">Loading audit log…</p>}
+      <main className="max-w-7xl mx-auto px-4 py-6 space-y-5">
+        {loading && <p className="text-gray-400 text-center py-10">Loading admin console…</p>}
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl p-4 text-sm">
@@ -135,27 +155,41 @@ export default function AdminScreen() {
           </div>
         )}
 
+        {/* District officer watchboard: escalations + audit integrity side-by-side */}
+        <div className="grid gap-5 lg:grid-cols-2 items-start">
+          <section>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              🔺 Case Escalation &amp; Referral Ladder
+            </h2>
+            <EscalationPanel clusters={clusters} />
+          </section>
+
+          {audit && (
+            <section>
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Audit Integrity</h2>
+              <div
+                className={`rounded-2xl p-4 border ${
+                  audit.integrity?.valid
+                    ? "bg-green-50 border-green-200 text-green-800"
+                    : "bg-red-50 border-red-300 text-red-800"
+                }`}
+              >
+                <div className="flex items-center gap-2 font-semibold">
+                  <span>{audit.integrity?.valid ? "🟢" : "🔴"}</span>
+                  {audit.integrity?.valid
+                    ? "Audit chain intact — no tampering detected"
+                    : `TAMPER DETECTED at entry #${audit.integrity.brokenIndex + 1}`}
+                </div>
+                <p className="text-xs mt-1 opacity-80">
+                  SHA-256 hash chain: editing any past entry breaks all subsequent hashes.
+                </p>
+              </div>
+            </section>
+          )}
+        </div>
+
         {audit && (
           <>
-            {/* Integrity indicator */}
-            <div
-              className={`rounded-2xl p-4 border ${
-                audit.integrity?.valid
-                  ? "bg-green-50 border-green-200 text-green-800"
-                  : "bg-red-50 border-red-300 text-red-800"
-              }`}
-            >
-              <div className="flex items-center gap-2 font-semibold">
-                <span>{audit.integrity?.valid ? "🟢" : "🔴"}</span>
-                {audit.integrity?.valid
-                  ? "Audit chain intact — no tampering detected"
-                  : `TAMPER DETECTED at entry #${audit.integrity.brokenIndex + 1}`}
-              </div>
-              <p className="text-xs mt-1 opacity-80">
-                SHA-256 hash chain: editing any past entry breaks all subsequent hashes.
-              </p>
-            </div>
-
             <div>
               <h2 className="text-xl font-bold text-gray-800 mb-3">
                 Entries <span className="text-sm font-normal text-gray-400">({audit.log.length})</span>
@@ -165,7 +199,7 @@ export default function AdminScreen() {
                   No audit entries yet. Actions like vet dispatch and farm registration will appear here.
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                   {audit.log
                     .slice()
                     .reverse()

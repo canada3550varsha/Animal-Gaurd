@@ -10,6 +10,7 @@ import { fdrsBand } from "../api/agro.js";
 import ImpactMetrics from "../components/ImpactMetrics.jsx";
 import HealthPanel from "../components/HealthPanel.jsx";
 import SamplePanel from "../components/SamplePanel.jsx";
+import EscalationPanel from "../components/EscalationPanel.jsx";
 
 const SYMPTOM_LABEL = Object.fromEntries(
   Object.values(SYMPTOMS)
@@ -199,7 +200,7 @@ export default function DashboardScreen() {
   return (
     <div className="min-h-screen bg-surface">
       <header className="bg-gray-900 text-white px-4 py-4 shadow-md">
-        <div className="max-w-lg mx-auto flex items-center justify-between">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button onClick={() => navigate("/")} className="text-xl">←</button>
             <div>
@@ -229,7 +230,7 @@ export default function DashboardScreen() {
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-6 space-y-5">
+      <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         {/* Live outbreak attention banner — appears within seconds of a farmer report */}
         {newAlerts.length > 0 && (
           <div className="bg-red-600 text-white rounded-2xl p-4 shadow-lg">
@@ -256,7 +257,8 @@ export default function DashboardScreen() {
           </div>
         )}
 
-        {/* Impact metrics */}
+        {/* Metrics row: Programme Impact + Mortality side-by-side on desktop */}
+        <div className="grid gap-5 lg:grid-cols-2 items-start">
         <section>
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Programme Impact</h2>
           <ImpactMetrics />
@@ -330,7 +332,10 @@ export default function DashboardScreen() {
             </div>
           </section>
         )}
+        </div>
 
+        {/* Response ops row: Lab & Diagnostics + Case Escalation side-by-side */}
+        <div className="grid gap-5 lg:grid-cols-2 items-start">
         {/* 🧪 Lab sample & referral — blood/swab → district lab → result to farm */}
         {user?.role === "vet" && (
           <section>
@@ -339,6 +344,17 @@ export default function DashboardScreen() {
           </section>
         )}
 
+        {/* 🔺 Case escalation / referral ladder — vet raises, admin/officer follows up */}
+        <section className={user?.role === "vet" ? "" : "lg:col-span-2"}>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            Case Escalation &amp; Referral Ladder
+          </h2>
+          <EscalationPanel clusters={clusters} />
+        </section>
+        </div>
+
+        {/* Watchboard row: health ledger + live sensing side-by-side */}
+        <div className="grid gap-5 lg:grid-cols-2 items-start">
         {/* 💉 Vaccination & treatment health ledger (vet records; farms + audit reflect instantly) */}
         <HealthPanel />
 
@@ -414,6 +430,7 @@ export default function DashboardScreen() {
             ))}
           </div>
         </section>
+        </div>
 
         {/* 🤖 AI Alerts — only shown when the sensing AI actually fired an alert. */}
         {aiAlerts.length > 0 && (
@@ -424,7 +441,7 @@ export default function DashboardScreen() {
             <p className="text-[11px] text-gray-500 bg-white border border-gray-100 rounded-xl px-3 py-2 mb-3 leading-snug">
               Filed automatically by the disease-prediction AI from remote-sensing data (not typed by anyone). Expand any alert to see the exact raw sensing values that triggered it.
             </p>
-            <div className="space-y-2">
+            <div className="grid gap-2 lg:grid-cols-2">
               {aiAlerts.map((alert) => {
                 const f = farmById.get(alert.farm_id);
                 const sr = alert.sensing_reading || null;
@@ -565,7 +582,7 @@ export default function DashboardScreen() {
               ✅ No active alerts. All reports within normal parameters.
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {alerts.map((cluster) => {
                 const dispatched = dispatchedClusterIds.has(cluster.id);
                 const critical = cluster.level === "critical";
@@ -693,7 +710,7 @@ export default function DashboardScreen() {
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
             District Farms — risk & emergency status
           </h2>
-          <div className="space-y-2">
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {farms.map((farm) => {
               const fdrs = getFDRS(farm);
               const band = fdrs ? fdrsBand(fdrs.total) : fdrsBand(0);
@@ -772,7 +789,7 @@ export default function DashboardScreen() {
               <p>No manual reports yet.</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {routineReports.map((report) => {
                 const f = farmById.get(report.farm_id);
                 return (

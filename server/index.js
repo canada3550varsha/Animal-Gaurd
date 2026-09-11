@@ -83,6 +83,8 @@ let DB = {
   drives: loadJson("drives.json", SEED_DRIVES),
   // Lab samples: referrals from vet to district laboratory + returned results.
   samples: loadJson("samples.json", SEED_SAMPLES),
+  // Case escalations: critical/rising clusters escalated up the referral ladder.
+  escalations: loadJson("escalations.json", []),
 };
 const persist = () => {
   writeJson("users.json", DB.users);
@@ -94,6 +96,7 @@ const persist = () => {
   writeJson("health.json", DB.health);
   writeJson("drives.json", DB.drives);
   writeJson("samples.json", DB.samples);
+  writeJson("escalations.json", DB.escalations);
 };
 
 // ---------- Express setup ----------
@@ -837,6 +840,63 @@ app.get("/api/dashboard", authRequired, (req, res) => {
   res.json({ clusters: viewClusters, criticals: viewClusters.filter((c) => c.level === "critical"), routine });
 });
 
+app.post("/api/clusters/:id/escalate", authRequired, requireRole("vet", "admin"), (req, res) => {
+  const cluster = computeAllClusters().find((c) => c.id === req.params.id);
+  if (!cluster || (cluster.level !== "critical" && cluster.level !== "emerging")) {
+    return res.status(404).json({ error: "Cluster not found or not actionable" });
+  }
+  if (req.user.role === "vet" && req.user.district && cluster.district && cluster.district !== req.user.district) {
+    return res.status(403).json({ error: "Forbidden: cluster outside assigned district" });
+  }
+  const { level, target, notes } = req.body || {};
+  if (!ESCALATION_LEVELS.includes(level)) {
+    return res.status(400).json({ error: `level must be one of: ${ESCALATION_LEVELS.join(", ")}` });
+  }
+  if (target !== undefined && (typeof target !== "string" || target.length > NAME_MAX)) {
+    return res.status(400).json({ error: "target too long or invalid" });
+  }
+  if (notes !== undefined && (typeof notes !== "string" || notes.length > NOTES_MAX)) {
+    return res.status(400).json({ error: "notes too long or invalid" });
+  }
+  const resolvedTarget =
+    target?.trim() ||
+    `${ESCALATION_TARGETS[level]}, ${cluster.district || cluster.taluka || cluster.village.split(",")[0].trim()} (${cluster.village} cluster)`;
+  const esc = {
+    id: `esc_${now()}_${Math.random().toString(36).slice(2, 7)}`,
+    ...escalationSnapshot(cluster),
+    level,
+    target: resolvedTarget,
+    notes: notes?.trim() || undefined,
+    status: "escalated",
+    raised_by: req.user.id,
+    raised_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    timeline: [
+      {
+        status: "escalated",
+        by: req.user.id,
+        ts: new Date().toISOString(),
+        note: notes?.trim() || `Escalated to ${resolvedTarget} (${level})`,
+      },
+    ],
+  };
+  DB.escalations.push(esc);
+  DB.audit = appendAudit(DB.audit, req.user.id, "escalation", {
+    escalation_id: esc.id,
+    cluster_id: cluster.id,
+    level,
+    target: resolvedTarget,
+    village: cluster.village,
+    taluka: cluster.taluka || null,
+    district: cluster.district || null,
+    report_count: cluster.report_count,
+    farm_count: cluster.farm_count,
+    notes: esc.notes || null,
+  });
+  persist();
+  res.status(201).json({ escalation: esc });
+});
+
 // Dispatch / Advisory (vet/admin only) -> writes audit chain + inbox
 app.post("/api/clusters/:id/:action", authRequired, requireRole("vet", "admin"), (req, res) => {
   const { id, action } = req.params;
@@ -899,6 +959,69 @@ app.post("/api/clusters/:id/:action", authRequired, requireRole("vet", "admin"),
   });
   persist();
   res.json({ ok: true, messageCount: messageIds.length, action });
+});
+
+// ---------- Case escalation / referral ladder ----------
+// A critical/rising cluster is escalated up the ladder (district officer,
+// veterinary dispensary referral, or hospital), then tracked to resolution
+// with follow-up status updates. Vet raises on the vet dashboard; the admin
+// (district officer console) acknowledges/follows-up/resolves.
+const escalationSnapshot = (cluster) => ({
+  cluster_id: cluster.id,
+  village: cluster.village,
+  taluka: cluster.taluka || null,
+  district: cluster.district || null,
+  level_now: cluster.level,
+  report_count: cluster.report_count,
+  farm_count: cluster.farm_count,
+  affected_animals: cluster.affected_animals ?? 0,
+  animal_category: cluster.animal_category,
+  report_ids: cluster.reports,
+});
+
+app.get("/api/escalations", authRequired, (req, res) => {
+  if (req.user.role === "farmer") return res.status(403).json({ error: "Forbidden" });
+  let list = DB.escalations.slice();
+  if (req.user.role === "vet") list = list.filter((e) => !e.district || e.district === req.user.district);
+  res.json({
+    escalations: list
+      .map((e) => {
+        const cluster = computeAllClusters().find((c) => c.id === e.cluster_id);
+        return {
+          ...e,
+          level_now: cluster?.level || e.level_now,
+          report_count_now: cluster?.report_count ?? e.report_count,
+        };
+      })
+      .sort((a, b) => new Date(b.raised_at) - new Date(a.raised_at)),
+  });
+});
+
+// Follow-up status update: acknowledged → in_progress → follow_up → resolved.
+app.post("/api/escalations/:id/status", authRequired, requireRole("vet", "admin"), (req, res) => {
+  const esc = DB.escalations.find((e) => e.id === req.params.id);
+  if (!esc) return res.status(404).json({ error: "Escalation not found" });
+  const { status, note } = req.body || {};
+  if (!ESCALATION_STATUSES.includes(status)) {
+    return res.status(400).json({ error: `status must be one of: ${ESCALATION_STATUSES.join(", ")}` });
+  }
+  if (note !== undefined && (typeof note !== "string" || note.length > NOTES_MAX)) {
+    return res.status(400).json({ error: "note too long or invalid" });
+  }
+  esc.status = status;
+  esc.updated_at = new Date().toISOString();
+  esc.timeline = esc.timeline || [];
+  esc.timeline.push({ status, by: req.user.id, ts: new Date().toISOString(), note: note?.trim() || status });
+  DB.audit = appendAudit(DB.audit, req.user.id, "escalation_followup", {
+    escalation_id: esc.id,
+    cluster_id: esc.cluster_id,
+    village: esc.village,
+    district: esc.district || null,
+    status,
+    note: note?.trim() || null,
+  });
+  persist();
+  res.json({ escalation: esc });
 });
 
 // Inbox for a farm (owner can read own; vet/admin can read all in scope)
@@ -1032,6 +1155,15 @@ const DRIVE_STATUSES = ["planned", "active", "completed"];
 const SAMPLE_TYPES = ["blood", "swab", "feces", "milk", "tissue"];
 const SAMPLE_RESULTS = ["positive", "negative"];
 const DEFAULT_LAB = "District Veterinary Laboratory, Pune";
+
+// Case escalation ladder constants.
+const ESCALATION_LEVELS = ["officer", "referral", "hospital"];
+const ESCALATION_STATUSES = ["escalated", "acknowledged", "in_progress", "follow_up", "resolved"];
+const ESCALATION_TARGETS = {
+  officer: "District Animal Husbandry Officer",
+  referral: "Veterinary Dispensary",
+  hospital: "Veterinary Hospital",
+};
 
 // The farms a drive targets = farms in the drive's region matching its animal
 // category. This is what coverage is measured against.

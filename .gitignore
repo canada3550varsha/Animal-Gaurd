@@ -17,6 +17,9 @@ dist-ssr
 server/.env
 *.db
 
+# Runtime data (ephemeral JSON stores — never commit)
+server/data
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

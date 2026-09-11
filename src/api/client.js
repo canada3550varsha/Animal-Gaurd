@@ -71,6 +71,9 @@ export const api = {
   clusters: (token) => request("/clusters", { token }),
   dashboard: (token) => request("/dashboard", { token }),
   clusterAction: (token, id, action) => request(`/clusters/${id}/${action}`, { method: "POST", token }),
+  escalateCluster: (token, id, payload) => request(`/clusters/${id}/escalate`, { method: "POST", body: payload, token }),
+  escalations: (token) => request("/escalations", { token }),
+  escalationStatus: (token, id, payload) => request(`/escalations/${id}/status`, { method: "POST", body: payload, token }),
 
   samples: (token) => request("/samples", { token }),
   createSample: (token, payload) => request("/samples", { method: "POST", body: payload, token }),

@@ -112,13 +112,15 @@ export default function FarmDetailScreen() {
   return (
     <div className="min-h-screen bg-surface">
       <header className="bg-primary text-white px-4 py-4 shadow-md">
-        <div className="max-w-lg mx-auto flex items-center gap-3">
+        <div className="max-w-7xl mx-auto flex items-center gap-3">
           <button onClick={() => navigate("/")} className="text-xl">←</button>
           <h1 className="text-lg font-bold">{farm.name}</h1>
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-6 space-y-4">
+      <main className="max-w-7xl mx-auto px-4 py-6 space-y-5">
+        {/* Top row: risk, environment, sensing + farm profile side-by-side on wide screens */}
+        <div className="grid gap-4 xl:grid-cols-2 items-start">
         {/* FDRS Card */}
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           <div className={`px-5 py-3 flex items-center justify-between ${band.bg}`}>
@@ -295,6 +297,7 @@ export default function FarmDetailScreen() {
             <InfoItem label="District" value={farm.district} />
           </div>
         </div>
+        </div>
 
         {/* 💉 Herd Health Ledger — vaccinations, treatments, deworming, mortality */}
         <div className="bg-white rounded-2xl p-4 border border-gray-100">
@@ -309,7 +312,7 @@ export default function FarmDetailScreen() {
           {health.length === 0 ? (
             <p className="text-sm text-gray-400">No health records yet. Vaccinations & treatments your veterinary team records appear here.</p>
           ) : (
-            <div className="space-y-2">
+            <div className="grid gap-2 md:grid-cols-2">
               {health.map((r) => (
                 <div key={r.id} className="border border-gray-100 rounded-xl p-3">
                   <div className="flex items-center justify-between gap-2">
@@ -343,7 +346,7 @@ export default function FarmDetailScreen() {
         {farmDrives.length > 0 && (
           <div className="bg-white rounded-2xl p-4 border border-gray-100">
             <h3 className="font-semibold mb-3">💉 Vaccination Drives</h3>
-            <div className="space-y-2">
+            <div className="grid gap-2 md:grid-cols-2">
               {farmDrives.map((d) => {
                 const covered = (d.coverage.covered_farm_ids || []).includes(farm.farm_id);
                 return (
@@ -446,7 +449,7 @@ export default function FarmDetailScreen() {
               No samples referred yet. The vet sends blood/swab samples to the district lab; the returned result appears here.
             </p>
           ) : (
-            <div className="space-y-2">
+            <div className="grid gap-2 md:grid-cols-2">
               {farmSamples.map((s) => {
                 const res = SAMPLE_RESULT_LABEL[s.result];
                 const st = SAMPLE_STATUS_LABEL[s.status];
@@ -496,7 +499,7 @@ export default function FarmDetailScreen() {
           {farmReports.length === 0 ? (
             <p className="text-sm text-gray-400">No symptom reports submitted yet.</p>
           ) : (
-            <div className="space-y-2">
+            <div className="grid gap-2 md:grid-cols-2">
               {farmReports.map((r) => (
                 <div key={r.id} className="border border-gray-100 rounded-xl p-3">
                   <div className="flex items-center justify-between mb-1">
@@ -600,7 +603,7 @@ export default function FarmDetailScreen() {
                   </button>
                 ))}
               </div>
-              <div className="space-y-2">
+              <div className="grid gap-2 md:grid-cols-2">
                 {farmInbox.map((m) => (
                   <div key={m.id} className="border border-gray-100 rounded-xl p-3">
                     <div className="flex items-center gap-2 mb-1">

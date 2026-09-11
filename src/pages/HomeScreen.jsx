@@ -67,7 +67,7 @@ export default function HomeScreen() {
   return (
     <div className="min-h-screen">
       <header className="bg-primary text-white px-4 py-4 shadow-md">
-        <div className="max-w-lg mx-auto flex items-center justify-between">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold flex items-center gap-2">
               Animal Guard
@@ -101,9 +101,9 @@ export default function HomeScreen() {
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-6">
+      <main className="max-w-7xl mx-auto px-4 py-6">
         {/* Secondary nav + impact metrics */}
-        <section className="mb-5">
+        <section className="mb-5 max-w-2xl mx-auto lg:mx-0">
           <button
             onClick={() => navigate("/voice-report")}
             className="w-full mb-2 py-3.5 bg-primary text-white font-bold rounded-xl hover:bg-primary-dark transition-colors text-sm flex items-center justify-center gap-2 shadow-sm"
@@ -151,7 +151,7 @@ export default function HomeScreen() {
             {user?.role === "farmer" && <p className="text-sm mt-1">Tap "Register Farm" to get started</p>}
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {farms.map((farm) => {
               const fdrs = getFDRS(farm);
               const band = fdrs ? fdrsBand(fdrs.total) : fdrsBand(0);
@@ -247,7 +247,7 @@ export default function HomeScreen() {
               Awaiting the first Agro poll…
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {sensing.map(({ farm, reading }) => (
                 <div key={farm.farm_id} className="bg-white rounded-xl border border-gray-100 p-3">
                   <div className="flex items-start justify-between gap-2">

@@ -8,6 +8,7 @@
     "server": "node server/index.js",
     "build": "vite build",
     "lint": "oxlint",
+    "check": "esbuild src/App.jsx --bundle --format=esm --platform=browser --outfile=node_modules/.check.js --loader:.png=dataurl",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -29,6 +30,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.1.0",
+    "esbuild": "^0.28.2",
     "oxlint": "^1.79.0",
     "tailwindcss": "^4.3.3",
     "vite": "^8.2.2"
