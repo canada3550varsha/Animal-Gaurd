@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useApp } from "../context/AppContext.jsx";
 import { api, getToken, reqError } from "../api/client.js";
 import { SAMPLE_TYPE_LABEL, SAMPLE_RESULT_LABEL } from "../data/health.js";
 
@@ -81,6 +82,7 @@ function ResultForm({ sample, onDone }) {
 
 export default function LabScreen() {
   const navigate = useNavigate();
+  const { logout } = useApp();
   const [samples, setSamples] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -130,6 +132,12 @@ export default function LabScreen() {
               <p className="text-xs text-gray-400">Sample inbox — record test results, returned to farm records</p>
             </div>
           </div>
+          <button
+            onClick={logout}
+            className="text-sm bg-green-700 hover:bg-green-800 px-3 py-1.5 rounded-lg transition-colors shrink-0"
+          >
+            Logout
+          </button>
         </div>
       </header>
 
