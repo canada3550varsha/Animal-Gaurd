@@ -7,7 +7,7 @@ import ImpactMetrics from "../components/ImpactMetrics.jsx";
 import { api, getToken } from "../api/client.js";
 
 export default function HomeScreen() {
-  const { user, logout, getUserFarms, getFDRS, sensing } = useApp();
+  const { user, getUserFarms, getFDRS, sensing } = useApp();
   const navigate = useNavigate();
   const farms = getUserFarms();
   const [health, setHealth] = useState([]);
@@ -92,10 +92,11 @@ export default function HomeScreen() {
               </button>
             )}
             <button
-              onClick={logout}
-              className="text-sm bg-green-700 hover:bg-green-800 px-3 py-1.5 rounded-lg transition-colors"
+              onClick={() => navigate("/")}
+              className="text-sm bg-green-700 hover:bg-green-800 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+              title="Back to role selection"
             >
-              Logout
+              ⟲ Switch Role
             </button>
           </div>
         </div>

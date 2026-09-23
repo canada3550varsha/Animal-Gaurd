@@ -219,3 +219,45 @@ export const SYMPTOMS_BY_CATEGORY = {
     "egg_drop", "respiratory_distress", "diarrhea", "ruffled_feathers", "swollen_head", "mass_mortality",
   ],
 };
+
+// ---------------------------------------------------------------------------
+// Zoonotic-risk flagging — diseases that can jump from animals to people.
+// A report/cluster is marked ⚠️ zoonotic when its clinical signs match a known
+// animal→human spillover disease (HPAI / anthrax / brucellosis). The human
+// health advisory is shown wherever the flag appears (farm detail, vet
+// dashboard, reports) and is appended to advisory/dispatch messages.
+// ---------------------------------------------------------------------------
+export const ZOONOTIC_ADVISORY = {
+  en: "Human-health alert: this disease can spread to people. Wear gloves and a mask, avoid raw milk/carcass contact, keep children away, and notify the nearest Primary Health Centre immediately.",
+  hi: "मानव-स्वास्थ्य चेतावनी: यह रोग इंसानों में फैल सकता है। दस्ताने व मास्क पहनें, कच्चे दूध/संपर्क से बचें, बच्चों को दूर रखें, निकटतम प्राथमिक स्वास्थ्य केंद्र को तुरंत सूचित करें।",
+  mr: "मानव-आरोग्य इशारा: हा रोग माणसांना लागू शकतो. हातमोजे व मास्क वापरा, कच्चे दूध/स्पर्श टाळा, मुलांना दूर ठेवा, जवळच्या प्राथमिक आरोग्य केंद्राला त्वरित कळवा.",
+};
+
+// Clinical-sign rules per animal category (all listed signs must be present).
+export const ZOONOTIC_RULES = [
+  { id: "hpai", name: "Avian Influenza (HPAI)", category: "poultry", signs: ["respiratory_distress", "egg_drop"] },
+  { id: "hpai", name: "Avian Influenza (HPAI)", category: "poultry", signs: ["mass_mortality"] },
+  { id: "anthrax", name: "Anthrax", category: "large_livestock", signs: ["fever", "sudden_death"] },
+  { id: "brucellosis", name: "Brucellosis", category: "large_livestock", signs: ["reduced_milk", "fever"] },
+];
+
+// List of zoonotic diseases matched by a report's clinical signs.
+export function zoonoticFlag(report) {
+  const sigs = new Set(report?.symptoms || []);
+  const seen = new Set();
+  const hits = [];
+  for (const rule of ZOONOTIC_RULES) {
+    if (rule.category !== report?.animal_category) continue;
+    if (rule.signs.every((s) => sigs.has(s)) && !seen.has(rule.id)) {
+      seen.add(rule.id);
+      hits.push({ id: rule.id, name: rule.name });
+    }
+  }
+  return hits;
+}
+
+// Compute the read-only `zoonotic` / `zoonotic_diseases` fields for a report.
+export function flagReportZoonotic(report) {
+  const diseases = zoonoticFlag(report);
+  return { zoonotic: diseases.length > 0, zoonotic_diseases: diseases };
+}

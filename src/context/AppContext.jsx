@@ -11,6 +11,15 @@ import { haversineKm, RING_INNER_KM, RING_OUTER_KM } from "../api/clustering.js"
 
 const AppContext = createContext(null);
 
+// Role -> seeded demo account. Selecting a role on the landing screen signs the
+// app in as that role's demo user (server auth stays intact — no login page).
+const ROLE_LOGINS = {
+  farmer: { mobile: "9876543210", code: "0000" },
+  vet: { mobile: "9123456780", code: "0000" },
+  admin: { mobile: "9988776655", code: "0000" },
+  lab: { mobile: "9000000001", code: "0000" },
+};
+
 export function AppProvider({ children }) {
   const [token, setTokenState] = useState(() => getToken());
   const [user, setUser] = useState(null);
@@ -117,6 +126,17 @@ export function AppProvider({ children }) {
 
   const login = useCallback(async (mobile, code) => {
     const data = await api.login(mobile, code);
+    setToken(data.token);
+    setTokenState(data.token);
+    setUser(data.user);
+    return data.user;
+  }, []);
+
+  // Sign the app in as a role's demo user (called from the role-selection screen).
+  const selectRole = useCallback(async (role) => {
+    const creds = ROLE_LOGINS[role];
+    if (!creds) throw new Error(`Unknown role: ${role}`);
+    const data = await api.login(creds.mobile, creds.code);
     setToken(data.token);
     setTokenState(data.token);
     setUser(data.user);
@@ -290,8 +310,10 @@ export function AppProvider({ children }) {
     <AppContext.Provider
       value={{
         user,
+        role: user?.role ?? null,
         authLoaded,
         login,
+        selectRole,
         logout: handleLogout,
         farms,
         getUserFarms,

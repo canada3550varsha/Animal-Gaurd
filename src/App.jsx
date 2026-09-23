@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useApp } from "./context/AppContext.jsx";
-import LoginScreen from "./pages/LoginScreen.jsx";
+import LandingScreen from "./pages/LandingScreen.jsx";
 import HomeScreen from "./pages/HomeScreen.jsx";
 import RegisterFarmScreen from "./pages/RegisterFarmScreen.jsx";
 import FarmDetailScreen from "./pages/FarmDetailScreen.jsx";
@@ -26,23 +26,23 @@ export default function App() {
   }
 
   const isOfficer = user && (user.role === "vet" || user.role === "admin");
-  const isLab = user && user.role === "lab";
 
   return (
     <div className="min-h-screen bg-surface">
       <Routes>
-        <Route path="/login" element={!user ? <LoginScreen /> : <Navigate to="/" />} />
-        <Route path="/" element={user ? (isLab ? <LabScreen /> : <HomeScreen />) : <Navigate to="/login" />} />
-        <Route path="/lab" element={isLab ? <LabScreen /> : (user ? <Navigate to="/" /> : <Navigate to="/login" />)} />
+        <Route path="/" element={<LandingScreen />} />
+        <Route path="/owner" element={user ? <HomeScreen /> : <Navigate to="/" />} />
+        <Route path="/dashboard" element={isOfficer ? <DashboardScreen /> : <Navigate to="/" />} />
+        <Route path="/vet" element={isOfficer ? <DashboardScreen /> : <Navigate to="/" />} />
+        <Route path="/admin" element={user?.role === "admin" ? <AdminScreen /> : <Navigate to="/" />} />
+        <Route path="/lab" element={user?.role === "lab" ? <LabScreen /> : <Navigate to="/" />} />
         <Route path="/architecture" element={<ArchitectureScreen />} />
         <Route path="/walkthrough" element={<WalkthroughScreen />} />
-        <Route path="/dashboard" element={isOfficer ? <DashboardScreen /> : (user ? <Navigate to="/" /> : <Navigate to="/login" />)} />
-        <Route path="/admin" element={user?.role === "admin" ? <AdminScreen /> : (user ? <Navigate to="/" /> : <Navigate to="/login" />)} />
-        <Route path="/register-farm" element={user ? <RegisterFarmScreen /> : <Navigate to="/login" />} />
-        <Route path="/farm/:farmId" element={user ? <FarmDetailScreen /> : <Navigate to="/login" />} />
-        <Route path="/farm/:farmId/report" element={user ? <ReportSymptomsScreen /> : <Navigate to="/login" />} />
-        <Route path="/farm/:farmId/voice" element={user ? <VoiceReportScreen /> : <Navigate to="/login" />} />
-        <Route path="/voice-report" element={user ? <VoiceReportScreen /> : <Navigate to="/login" />} />
+        <Route path="/register-farm" element={user ? <RegisterFarmScreen /> : <Navigate to="/" />} />
+        <Route path="/farm/:farmId" element={user ? <FarmDetailScreen /> : <Navigate to="/" />} />
+        <Route path="/farm/:farmId/report" element={user ? <ReportSymptomsScreen /> : <Navigate to="/" />} />
+        <Route path="/farm/:farmId/voice" element={user ? <VoiceReportScreen /> : <Navigate to="/" />} />
+        <Route path="/voice-report" element={user ? <VoiceReportScreen /> : <Navigate to="/" />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </div>

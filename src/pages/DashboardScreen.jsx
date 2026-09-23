@@ -11,6 +11,7 @@ import ImpactMetrics from "../components/ImpactMetrics.jsx";
 import HealthPanel from "../components/HealthPanel.jsx";
 import SamplePanel from "../components/SamplePanel.jsx";
 import EscalationPanel from "../components/EscalationPanel.jsx";
+import ZoonoticBadge from "../components/ZoonoticBadge.jsx";
 
 const SYMPTOM_LABEL = Object.fromEntries(
   Object.values(SYMPTOMS)
@@ -202,7 +203,13 @@ export default function DashboardScreen() {
       <header className="bg-gray-900 text-white px-4 py-4 shadow-md">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/")} className="text-xl">←</button>
+            <button
+              onClick={() => navigate("/")}
+              className="text-xs bg-white/10 hover:bg-white/20 px-2.5 py-1.5 rounded-lg text-white font-medium transition-colors"
+              title="Back to role selection"
+            >
+              🏠 Home
+            </button>
             <div>
               <h1 className="text-lg font-bold">
                 {user?.role === "vet" ? "Veterinary Dashboard" : "Officer Dashboard"}
@@ -462,6 +469,9 @@ export default function DashboardScreen() {
                         </p>
                       </div>
                     </div>
+                    <div className="mt-2">
+                      <ZoonoticBadge item={alert} compact />
+                    </div>
                     <p className="text-xs text-gray-700 mt-2 leading-snug">{alert.notes}</p>
                     {(alert.symptoms || []).length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
@@ -624,6 +634,9 @@ export default function DashboardScreen() {
                         {cluster.last_report_at && (
                           <p className="text-[10px] text-gray-500 mt-1">Last report {formatTime(cluster.last_report_at)}</p>
                         )}
+                        <div className="mt-1.5">
+                          <ZoonoticBadge item={cluster} />
+                        </div>
                       </div>
                       <span
                         className={`text-[10px] px-2 py-1 rounded-full font-semibold shrink-0 ${
@@ -680,6 +693,9 @@ export default function DashboardScreen() {
               <p className="text-sm text-red-800 mb-3">
                 Recommended: <span className="font-medium">{recommendedAction(cluster)}</span>
               </p>
+              <div className="mb-3">
+                <ZoonoticBadge item={cluster} />
+              </div>
               {dispatched && (
                 <p className="text-xs text-green-700 bg-green-100 rounded-lg px-2 py-1 mb-3">
                   ✅ Vet already dispatched for this cluster
@@ -795,12 +811,15 @@ export default function DashboardScreen() {
                 return (
                   <div key={report.id} className="bg-white rounded-xl border border-gray-100 p-3 flex items-start gap-3">
                     <span className="text-2xl">{iconFor(report)}</span>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">{f?.name || report.farm_name}</p>
-                      <p className="text-xs text-gray-500">
-                        {CATEGORY_LABELS[report.animal_category]} · {report.village}, {report.district}
-                      </p>
-                      <div className="flex flex-wrap gap-1 mt-1.5">
+<div className="flex-1">
+                        <p className="font-medium text-gray-900">{f?.name || report.farm_name}</p>
+                        <p className="text-xs text-gray-500">
+                          {CATEGORY_LABELS[report.animal_category]} · {report.village}, {report.district}
+                        </p>
+                        <div className="mt-1.5">
+                          <ZoonoticBadge item={report} compact />
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-1.5">
                         {report.source === "ai_auto" ? (
                           <span className="inline-block bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-[10px] font-medium">
                             🛰️ AI-sensed (auto)

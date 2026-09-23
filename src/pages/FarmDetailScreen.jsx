@@ -9,6 +9,7 @@ import { fdrsBand, historicalRiskFor, hasLiveEnv } from "../api/agro.js";
 import { RING_INNER_KM, RING_OUTER_KM } from "../api/clustering.js";
 import { api, getToken } from "../api/client.js";
 import { healthIcon, healthLabel, SAMPLE_TYPE_LABEL, SAMPLE_RESULT_LABEL, SAMPLE_STATUS_LABEL } from "../data/health.js";
+import ZoonoticBadge from "../components/ZoonoticBadge.jsx";
 
 const markerIcon = L.divIcon({
   className: "",
@@ -113,7 +114,7 @@ export default function FarmDetailScreen() {
     <div className="min-h-screen bg-surface">
       <header className="bg-primary text-white px-4 py-4 shadow-md">
         <div className="max-w-7xl mx-auto flex items-center gap-3">
-          <button onClick={() => navigate("/")} className="text-xl">←</button>
+          <button onClick={() => navigate(-1)} className="text-xl" title="Back to previous screen">←</button>
           <h1 className="text-lg font-bold">{farm.name}</h1>
         </div>
       </header>
@@ -531,6 +532,9 @@ export default function FarmDetailScreen() {
                       </span>
                     ))}
                   </div>
+                  <div className="mt-1.5">
+                    <ZoonoticBadge item={r} compact />
+                  </div>
                   {r.notes && (
                     <p className="text-[11px] text-gray-500 mt-1.5 leading-snug">{r.notes}</p>
                   )}
@@ -637,7 +641,7 @@ export default function FarmDetailScreen() {
             🎤 No-Typing Voice
           </button>
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate(-1)}
             className="flex-1 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors"
           >
             Back to Farms

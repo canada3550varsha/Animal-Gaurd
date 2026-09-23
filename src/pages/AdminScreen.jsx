@@ -138,7 +138,13 @@ export default function AdminScreen() {
     <div className="min-h-screen bg-surface">
       <header className="bg-gray-900 text-white px-4 py-4 shadow-md">
         <div className="max-w-7xl mx-auto flex items-center gap-3">
-          <button onClick={() => navigate("/")} className="text-xl">←</button>
+          <button
+            onClick={() => navigate("/")}
+            className="text-xs bg-white/10 hover:bg-white/20 px-2.5 py-1.5 rounded-lg text-white font-medium transition-colors"
+            title="Back to role selection"
+          >
+            🏠 Home
+          </button>
           <div>
             <h1 className="text-lg font-bold">Admin — District Officer Console</h1>
             <p className="text-xs text-gray-400">Case escalations · tamper-evident SHA-256 audit chain</p>

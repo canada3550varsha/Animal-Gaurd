@@ -197,6 +197,22 @@ export const SEED_REPORTS = [
     district: "Nagpur",
     created_at: hoursAgo(3),
   },
+  {
+    id: "seed_po_3",
+    farm_id: "farm_1003",
+    animal_category: "poultry",
+    animal_type: "chicken",
+    symptoms: ["respiratory_distress", "egg_drop"],
+    affected_count: 25,
+    deaths: 6,
+    notes: "⚠️ Zoonotic suspicion — sudden onset respiratory distress + egg drop.",
+    lat: 18.466,
+    lng: 73.895,
+    village: "Wanwadi",
+    taluka: "Haveli",
+    district: "Pune",
+    created_at: hoursAgo(14),
+  },
 ];
 
 function daysAgo(d) {

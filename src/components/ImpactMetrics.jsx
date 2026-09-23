@@ -16,7 +16,7 @@ export default function ImpactMetrics({ compact = false }) {
         if (active) setImpact(data.impact);
       } catch (e) {
         if (e?.status === 401) {
-          if (active) setError("Session expired — please re-login.");
+          if (active) setError("Session expired — go back and pick your role to continue.");
         } else {
           if (active) setError(reqError(e));
         }

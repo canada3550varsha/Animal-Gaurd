@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useApp } from "../context/AppContext.jsx";
 import { api, getToken, reqError } from "../api/client.js";
 import { SAMPLE_TYPE_LABEL, SAMPLE_RESULT_LABEL } from "../data/health.js";
 
@@ -82,7 +81,6 @@ function ResultForm({ sample, onDone }) {
 
 export default function LabScreen() {
   const navigate = useNavigate();
-  const { logout } = useApp();
   const [samples, setSamples] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -126,18 +124,18 @@ export default function LabScreen() {
       <header className="bg-gray-900 text-white px-4 py-4 shadow-md">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/")} className="text-xl">←</button>
+            <button
+              onClick={() => navigate("/")}
+              className="text-xs bg-white/10 hover:bg-white/20 px-2.5 py-1.5 rounded-lg text-white font-medium transition-colors shrink-0"
+              title="Back to role selection"
+            >
+              🏠 Home
+            </button>
             <div>
               <h1 className="text-lg font-bold">🔬 District Veterinary Laboratory</h1>
               <p className="text-xs text-gray-400">Sample inbox — record test results, returned to farm records</p>
             </div>
           </div>
-          <button
-            onClick={logout}
-            className="text-sm bg-green-700 hover:bg-green-800 px-3 py-1.5 rounded-lg transition-colors shrink-0"
-          >
-            Logout
-          </button>
         </div>
       </header>
 

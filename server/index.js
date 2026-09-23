@@ -27,6 +27,8 @@ import {
   SYMPTOMS_BY_CATEGORY,
   RING_INNER_KM,
   RING_OUTER_KM,
+  flagReportZoonotic,
+  ZOONOTIC_ADVISORY,
 } from "./clustering.js";
 import { appendAudit, verifyAudit } from "./audit.js";
 import {
@@ -515,9 +517,28 @@ async function analyzePhoto(buffer, mimetype, animalCategory) {
 }
 
 // ---------- Derived data (computed server-side from server-owned data) ----------
+// Zoonotic enrichment: stamp reports + clusters with ⚠️ animal→human spillover risk.
+const enrichReportZoonotic = (report) => ({ ...report, ...flagReportZoonotic(report) });
+
+const withZoonoticCluster = (cluster) => {
+  const diseases =
+    [...new Map(
+      DB.reports
+        .filter((r) => cluster.reports.includes(r.id))
+        .flatMap((r) => flagReportZoonotic(r).zoonotic_diseases)
+        .map((d) => [d.id, d])
+    ).values()] || [];
+  return { ...cluster, zoonotic: diseases.length > 0, zoonotic_diseases: diseases };
+};
+
 function computeAllClusters() {
-  return detectClusters(DB.reports);
+  return detectClusters(DB.reports).map(withZoonoticCluster);
 }
+
+const zoonoticLine = (cluster, lang = "en") =>
+  cluster.zoonotic && ZOONOTIC_ADVISORY[lang]
+    ? ` (⚠️ ZOONOTIC — ${cluster.zoonotic_diseases.map((d) => d.name).join(", ")}: ${ZOONOTIC_ADVISORY[lang]})`
+    : "";
 
 function computeNearbyOutbreak(farm) {
   const criticals = computeAllClusters().filter((c) => c.level === "critical");
@@ -773,6 +794,7 @@ app.post("/api/reports", authRequired, upload.single("photo"), async (req, res) 
     ...(vision ? { description: vision.description, confidence: vision.confidence } : {}),
     ...(req.file && req.file.buffer ? { has_photo: true } : {}),
   };
+  Object.assign(report, flagReportZoonotic(report));
   DB.reports.push(report);
   DB.audit = appendAudit(DB.audit, req.user.id, "report_submitted", {
     report_id: report.id,
@@ -787,6 +809,8 @@ app.post("/api/reports", authRequired, upload.single("photo"), async (req, res) 
     deaths: report.deaths,
     notes: report.notes || null,
     has_photo: report.has_photo ? true : false,
+    zoonotic: report.zoonotic,
+    zoonotic_diseases: report.zoonotic_diseases.map((d) => d.name),
   });
   persist();
   res.status(201).json({ report });
@@ -804,11 +828,12 @@ app.get("/api/reports", authRequired, async (req, res) => {
   // AI alerts embed the exact sensing_readings row that triggered them so the
   // UI can show "View source sensing data" without a second round trip.
   reports = reports.map((r) => {
-    if (r.source === "ai_auto" && r.sensing_reading_id) {
+    const enriched = enrichReportZoonotic(r);
+    if (enriched.source === "ai_auto" && enriched.sensing_reading_id) {
       const sr = DB.sensing_readings.find((x) => x.id === r.sensing_reading_id) || null;
-      return sr ? { ...r, sensing_reading: sr } : r;
+      return sr ? { ...enriched, sensing_reading: sr } : enriched;
     }
-    return r;
+    return enriched;
   });
   res.json({ reports });
 });
@@ -832,6 +857,7 @@ app.get("/api/dashboard", authRequired, (req, res) => {
   const allClustered = new Set(clusters.flatMap((c) => c.reports));
   const routine = DB.reports
     .filter((r) => !allClustered.has(r.id))
+    .map(enrichReportZoonotic)
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   let viewClusters = clusters;
   if (req.user.role === "vet") {
@@ -919,16 +945,16 @@ app.post("/api/clusters/:id/:action", authRequired, requireRole("vet", "admin"),
   const urgenHi = critical ? "गंभीर प्रकोप" : "उभरता प्रकोप";
   const en =
     action === "dispatch"
-      ? `🐮 Vet dispatched — ${urgenEn}: ${cluster.report_count} cases across ${cluster.farm_count} ${kind} farm(s) in ${cluster.village}. ${recommendedAction(cluster)}`
-      : `📢 Advisory — ${urgenEn} in ${cluster.village}: ${cluster.report_count} cases across ${cluster.farm_count} ${kind} farm(s). ${recommendedAction(cluster)} Please monitor and report symptoms.`;
+      ? `🐮 Vet dispatched — ${urgenEn}: ${cluster.report_count} cases across ${cluster.farm_count} ${kind} farm(s) in ${cluster.village}. ${recommendedAction(cluster)}${zoonoticLine(cluster, "en")}`
+      : `📢 Advisory — ${urgenEn} in ${cluster.village}: ${cluster.report_count} cases across ${cluster.farm_count} ${kind} farm(s). ${recommendedAction(cluster)} Please monitor and report symptoms.${zoonoticLine(cluster, "en")}`;
   const mr =
     action === "dispatch"
-      ? `🐮 पशुवैद्यकीय पथक रवाना — ${cluster.village} येथील ${cluster.farm_count} शेतात ${cluster.report_count} प्रकरणे.`
-      : `📢 सल्ला — ${cluster.village} येथे ${urgenMr}: ${cluster.farm_count} शेतांत ${cluster.report_count} प्रकरणे.`;
+      ? `🐮 पशुवैद्यकीय पथक रवाना — ${cluster.village} येथील ${cluster.farm_count} शेतात ${cluster.report_count} प्रकरणे.${zoonoticLine(cluster, "mr")}`
+      : `📢 सल्ला — ${cluster.village} येथे ${urgenMr}: ${cluster.farm_count} शेतांत ${cluster.report_count} प्रकरणे.${zoonoticLine(cluster, "mr")}`;
   const hi =
     action === "dispatch"
-      ? `🐮 पशु चिकित्सक भेजा — ${cluster.village} के ${cluster.farm_count} खेतों में ${cluster.report_count} मामले.`
-      : `📢 परामर्श — ${cluster.village} में ${urgenHi}: ${cluster.farm_count} खेतों में ${cluster.report_count} मामले.`;
+      ? `🐮 पशु चिकित्सक भेजा — ${cluster.village} के ${cluster.farm_count} खेतों में ${cluster.report_count} मामले.${zoonoticLine(cluster, "hi")}`
+      : `📢 परामर्श — ${cluster.village} में ${urgenHi}: ${cluster.farm_count} खेतों में ${cluster.report_count} मामले.${zoonoticLine(cluster, "hi")}`;
 
   const messageIds = [];
   for (const fid of cluster.farms) {
@@ -1560,6 +1586,7 @@ async function autonomousScan() {
         sensingReadingId: res.reading || null,
         envRisk: res.risk,
       });
+      Object.assign(report, flagReportZoonotic(report));
       DB.reports.push(report);
       autoCooldown.set(key, now());
       DB.audit = appendAudit(DB.audit, "system:autonomous", "auto_detect", {
@@ -1573,6 +1600,8 @@ async function autonomousScan() {
         report_id: report.id,
         sensing_reading_id: report.sensing_reading_id,
         env_risk: res.risk,
+        zoonotic: report.zoonotic,
+        zoonotic_diseases: report.zoonotic_diseases.map((d) => d.name),
       });
       persist();
       console.log(`[auto] filed ${report.id} — ${hit.name} (${hit.score}) at ${farm.village}`);
