@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext.jsx";
 import { DISTRICTS } from "../data/constants.js";
 import FarmMap from "../components/FarmMap.jsx";
+import Page from "../components/ui/Page.jsx";
 import { reqError } from "../api/client.js";
 
 const STEPS = {
@@ -121,17 +122,7 @@ export default function RegisterFarmScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-surface">
-      <header className="bg-primary text-white px-4 py-4 shadow-md">
-        <div className="max-w-lg mx-auto flex items-center gap-3">
-          <button onClick={() => step > 0 ? setStep(step - 1) : navigate("/")} className="text-xl">
-            ←
-          </button>
-          <h1 className="text-lg font-bold">Register New Farm</h1>
-        </div>
-      </header>
-
-      <main className="max-w-lg mx-auto px-4 py-6">
+    <Page title="Register New Farm" onBack={() => (step > 0 ? setStep(step - 1) : navigate("/"))} maxW="max-w-lg">
         {/* Step Indicator */}
         <div className="flex gap-1 mb-6">
           {Object.keys(STEPS).map((_, i) => (
@@ -360,8 +351,7 @@ export default function RegisterFarmScreen() {
             </div>
           </div>
         )}
-      </main>
-    </div>
+    </Page>
   );
 }
 

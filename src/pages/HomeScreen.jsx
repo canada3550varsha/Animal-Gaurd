@@ -4,14 +4,21 @@ import { useApp } from "../context/AppContext.jsx";
 import { CATEGORY_LABELS, ANIMAL_ICONS } from "../data/constants.js";
 import { fdrsBand } from "../api/agro.js";
 import ImpactMetrics from "../components/ImpactMetrics.jsx";
+import AppShell from "../components/ui/AppShell.jsx";
+import { Stat, SectionTitle } from "../components/ui/primitives.jsx";
 import { api, getToken } from "../api/client.js";
 
 export default function HomeScreen() {
-  const { user, getUserFarms, getFDRS, sensing } = useApp();
+  const { user, getUserFarms, getFDRS, sensing, reports, clusters } = useApp();
   const navigate = useNavigate();
   const farms = getUserFarms();
   const [health, setHealth] = useState([]);
   const [drives, setDrives] = useState([]);
+
+  const livestockCount = farms.filter((f) => f.animal_category === "large_livestock").length;
+  const poultryCount = farms.filter((f) => f.animal_category === "poultry").length;
+  const reports7 = reports.filter((r) => Date.now() - new Date(r.created_at).getTime() < 7 * 86400000).length;
+  const activeAlerts = clusters.filter((c) => c.level === "critical" || c.level === "emerging").length;
 
   useEffect(() => {
     let active = true;
@@ -65,85 +72,50 @@ export default function HomeScreen() {
   };
 
   return (
-    <div className="min-h-screen">
-      <header className="bg-primary text-white px-4 py-4 shadow-md">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold flex items-center gap-2">
-              Animal Guard
-            </h1>
-            <p className="text-green-200 text-xs">Welcome, {user?.name}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {user?.role === "admin" && (
-              <button
-                onClick={() => navigate("/admin")}
-                className="text-sm bg-green-700 hover:bg-green-800 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
-              >
-                🛡️ Audit
-              </button>
-            )}
-            {(user?.role === "vet" || user?.role === "admin") && (
-              <button
-                onClick={() => navigate("/dashboard")}
-                className="text-sm bg-green-700 hover:bg-green-800 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
-              >
-                🛰️ Dashboard
-              </button>
-            )}
-            <button
-              onClick={() => navigate("/")}
-              className="text-sm bg-green-700 hover:bg-green-800 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
-              title="Back to role selection"
-            >
-              ⟲ Switch Role
-            </button>
-          </div>
-        </div>
-      </header>
+    <AppShell title="Livestock Owner Dashboard" subtitle={`Welcome, ${user?.name}`}>
+      {/* KPI summary */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Stat icon="🏡" iconBg="bg-green-100" label="My farms" value={farms.length} tone="ink" sub={`${livestockCount} livestock · ${poultryCount} poultry`} />
+        <Stat icon="🩺" iconBg="bg-blue-100" label="Reports (7d)" value={reports7} tone="blue" sub="incl. auto-sensed alerts" />
+        <Stat icon="💉" iconBg="bg-indigo-100" label="Health records" value={health.length} tone="ink" sub="vaccinations · treatments · deworming" />
+        <Stat icon="🚨" iconBg="bg-red-100" label="Active alerts" value={activeAlerts} tone={activeAlerts > 0 ? "red" : "ink"} sub="critical + emerging clusters" />
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        {/* Secondary nav + impact metrics */}
-        <section className="mb-5 max-w-2xl mx-auto lg:mx-0">
+      {/* Quick actions */}
+      <section>
+        <SectionTitle icon="⚡">Quick actions</SectionTitle>
+        <div className="grid gap-3 sm:grid-cols-3">
           <button
             onClick={() => navigate("/voice-report")}
-            className="w-full mb-2 py-3.5 bg-primary text-white font-bold rounded-xl hover:bg-primary-dark transition-colors text-sm flex items-center justify-center gap-2 shadow-sm"
+            className="btn-primary py-3.5"
           >
             <span className="text-lg">🎤</span> No-Typing Voice Report
-            <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full">हिंदी · मराठी · English</span>
           </button>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => navigate("/architecture")}
-              className="py-2.5 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors text-sm"
-            >
-              🏗️ Architecture
-            </button>
-            <button
-              onClick={() => navigate("/walkthrough")}
-              className="py-2.5 bg-amber-500 text-white font-semibold rounded-xl hover:bg-amber-600 transition-colors text-sm"
-            >
-              🎬 Judge Walkthrough
-            </button>
-          </div>
-
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Programme Impact</h3>
-          <ImpactMetrics />
-        </section>
-
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-800">
-            {user?.role === "farmer" ? "My Farms" : user?.role === "vet" ? "District Farms" : "All Farms"}
-          </h2>
           {user?.role === "farmer" && (
-            <button
-              onClick={() => navigate("/register-farm")}
-              className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary-dark transition-colors flex items-center gap-1"
-            >
-              + Register Farm
+            <button onClick={() => navigate("/register-farm")} className="btn-primary py-3.5">
+              <span className="text-lg">➕</span> Register Farm
             </button>
           )}
+          <button onClick={() => navigate("/walkthrough")} className="btn py-3.5 bg-amber-500 text-white hover:bg-amber-600">
+            <span className="text-lg">🎬</span> Judge Walkthrough
+          </button>
+          <button onClick={() => navigate("/architecture")} className="btn-secondary py-3.5">
+            <span className="text-lg">🏗️</span> Architecture
+          </button>
         </div>
+      </section>
+
+      {/* Programme impact */}
+      <section>
+        <SectionTitle icon="📈">Programme impact</SectionTitle>
+        <ImpactMetrics />
+      </section>
+
+      {/* Farms */}
+      <section>
+        <SectionTitle icon="🏡">
+          {user?.role === "farmer" ? "My Farms" : user?.role === "vet" ? "District Farms" : "All Farms"}
+        </SectionTitle>
 
         {farms.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
@@ -166,7 +138,7 @@ export default function HomeScreen() {
                     console.log("farm:click", farm.farm_id);
                     navigate(`/farm/${farm.farm_id}`);
                   }}
-                  className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 cursor-pointer hover:shadow-md transition-shadow"
+                  className="card p-4 cursor-pointer card-hover"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3">
@@ -239,68 +211,68 @@ export default function HomeScreen() {
             })}
           </div>
         )}
+      </section>
 
-        {/* 📡 Live Sensing Data — raw poll rows, as-is (farmer sees own farms only) */}
-        <section className="mt-8">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">📡 Live Sensing Data</h2>
-          {sensing.length === 0 ? (
-            <div className="bg-white border border-gray-100 rounded-2xl p-4 text-sm text-gray-500">
-              Awaiting the first Agro poll…
-            </div>
-          ) : (
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-              {sensing.map(({ farm, reading }) => (
-                <div key={farm.farm_id} className="bg-white rounded-xl border border-gray-100 p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="font-medium text-gray-900 truncate">{farm.name}</p>
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 ${
-                        !reading
-                          ? "bg-gray-100 text-gray-500"
-                          : reading.fetch_status === "success"
-                            ? "bg-green-600 text-white"
-                            : reading.fetch_status === "pending"
-                              ? "bg-amber-100 text-amber-700"
-                              : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {!reading
-                        ? "NO READING YET"
+      {/* 📡 Live Sensing Data — raw poll rows, as-is (farmer sees own farms only) */}
+      <section>
+        <SectionTitle icon="📡">Live sensing data</SectionTitle>
+        {sensing.length === 0 ? (
+          <div className="bg-white border border-gray-100 rounded-2xl p-4 text-sm text-gray-500">
+            Awaiting the first Agro poll…
+          </div>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {sensing.map(({ farm, reading }) => (
+              <div key={farm.farm_id} className="bg-white rounded-xl border border-gray-100 p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-medium text-gray-900 truncate">{farm.name}</p>
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 ${
+                      !reading
+                        ? "bg-gray-100 text-gray-500"
                         : reading.fetch_status === "success"
-                          ? "● LIVE"
+                          ? "bg-green-600 text-white"
                           : reading.fetch_status === "pending"
-                            ? "PENDING"
-                            : "FETCH FAILED"}
-                    </span>
-                  </div>
-                  {reading ? (
-                    <>
-                      <div className="grid grid-cols-3 gap-2 mt-2.5">
-                        <div className="bg-gray-50 rounded-lg px-2 py-1.5 text-center">
-                          <p className="text-[10px] text-gray-400 font-medium uppercase">NDVI</p>
-                          <p className="text-sm font-semibold text-gray-800">{fmtNum(reading.ndvi)}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg px-2 py-1.5 text-center">
-                          <p className="text-[10px] text-gray-400 font-medium uppercase">Soil temp</p>
-                          <p className="text-sm font-semibold text-gray-800">{fmtCel(reading.soil_temp)}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg px-2 py-1.5 text-center">
-                          <p className="text-[10px] text-gray-400 font-medium uppercase">Soil moisture</p>
-                          <p className="text-sm font-semibold text-gray-800">{fmtMoisture(reading.soil_moisture)}</p>
-                        </div>
-                      </div>
-                      <p className="text-[10px] text-gray-400 mt-2">{reading.id} · {new Date(reading.fetched_at).toLocaleString()}</p>
-                    </>
-                  ) : (
-                    <p className="text-xs text-gray-400 mt-2">No reading yet — waiting for the first satellite pass.</p>
-                  )}
+                            ? "bg-amber-100 text-amber-700"
+                            : "bg-red-100 text-red-700"
+                    }`}
+                  >
+                    {!reading
+                      ? "NO READING YET"
+                      : reading.fetch_status === "success"
+                        ? "● LIVE"
+                        : reading.fetch_status === "pending"
+                          ? "PENDING"
+                          : "FETCH FAILED"}
+                  </span>
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
-      </main>
-    </div>
+                {reading ? (
+                  <>
+                    <div className="grid grid-cols-3 gap-2 mt-2.5">
+                      <div className="bg-gray-50 rounded-lg px-2 py-1.5 text-center">
+                        <p className="text-[10px] text-gray-400 font-medium uppercase">NDVI</p>
+                        <p className="text-sm font-semibold text-gray-800">{fmtNum(reading.ndvi)}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg px-2 py-1.5 text-center">
+                        <p className="text-[10px] text-gray-400 font-medium uppercase">Soil temp</p>
+                        <p className="text-sm font-semibold text-gray-800">{fmtCel(reading.soil_temp)}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg px-2 py-1.5 text-center">
+                        <p className="text-[10px] text-gray-400 font-medium uppercase">Soil moisture</p>
+                        <p className="text-sm font-semibold text-gray-800">{fmtMoisture(reading.soil_moisture)}</p>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-2">{reading.id} · {new Date(reading.fetched_at).toLocaleString()}</p>
+                  </>
+                ) : (
+                  <p className="text-xs text-gray-400 mt-2">No reading yet — waiting for the first satellite pass.</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </AppShell>
   );
 }
 

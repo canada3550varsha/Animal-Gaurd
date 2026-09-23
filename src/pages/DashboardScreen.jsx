@@ -12,6 +12,8 @@ import HealthPanel from "../components/HealthPanel.jsx";
 import SamplePanel from "../components/SamplePanel.jsx";
 import EscalationPanel from "../components/EscalationPanel.jsx";
 import ZoonoticBadge from "../components/ZoonoticBadge.jsx";
+import AppShell from "../components/ui/AppShell.jsx";
+import { Stat, SectionTitle } from "../components/ui/primitives.jsx";
 
 const SYMPTOM_LABEL = Object.fromEntries(
   Object.values(SYMPTOMS)
@@ -28,7 +30,7 @@ const farmMarker = L.divIcon({
 
 export default function DashboardScreen() {
   const navigate = useNavigate();
-  const { reports, farms, clusters, criticalClusters, inbox, user, getFDRS, dispatchVet, sendAdvisory, lastSyncedAt, sensing } = useApp();
+  const { reports, farms, clusters, criticalClusters, inbox, user, getFDRS, dispatchVet, sendAdvisory, sensing } = useApp();
 
   // Feedback state for Dispatch Vet / Send Advisory so a click always shows
   // what happened (success badge updates via inbox; failures are shown, never silent).
@@ -59,7 +61,6 @@ export default function DashboardScreen() {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
-  const syncedAgo = lastSyncedAt ? Math.max(0, Math.round((now - lastSyncedAt) / 1000)) : null;
 
   const farmById = useMemo(() => new Map(farms.map((f) => [f.farm_id, f])), [farms]);
 
@@ -198,46 +199,34 @@ export default function DashboardScreen() {
     return map;
   }, [reports]);
 
-  return (
-    <div className="min-h-screen bg-surface">
-      <header className="bg-gray-900 text-white px-4 py-4 shadow-md">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate("/")}
-              className="text-xs bg-white/10 hover:bg-white/20 px-2.5 py-1.5 rounded-lg text-white font-medium transition-colors"
-              title="Back to role selection"
-            >
-              🏠 Home
-            </button>
-            <div>
-              <h1 className="text-lg font-bold">
-                {user?.role === "vet" ? "Veterinary Dashboard" : "Officer Dashboard"}
-              </h1>
-              <p className="text-xs text-gray-400">
-                {user?.role === "vet" ? `${user.district || "District"} surveillance` : "District surveillance"} · {farms.length} farms in scope
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 text-[10px] text-green-300 bg-white/10 px-2 py-1 rounded-full">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
-              </span>
-              LIVE{typeof syncedAgo === "number" ? ` · ${syncedAgo}s` : ""}
-            </span>
-            <button
-              onClick={() => navigate("/walkthrough")}
-              className="text-xs bg-amber-500 hover:bg-amber-600 px-2.5 py-1.5 rounded-lg text-white font-medium transition-colors"
-            >
-              🎬 Walkthrough
-            </button>
-          </div>
-        </div>
-      </header>
+  const reports24h = reports.filter((r) => Date.now() - new Date(r.created_at).getTime() < 86400000).length;
+  const zoonoticClusters = clusters.filter(
+    (c) => c.zoonotic && (c.level === "critical" || c.level === "emerging")
+  ).length;
 
-      <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+  return (
+    <AppShell
+      title={user?.role === "vet" ? "Veterinary Dashboard" : "Officer Dashboard"}
+      subtitle={`${user?.district || "District"} surveillance · ${farms.length} farms in scope`}
+      actions={
+        <button
+          onClick={() => navigate("/walkthrough")}
+          className="hidden sm:inline-flex btn px-2.5 py-2 text-xs bg-amber-500 text-white hover:bg-amber-600"
+        >
+          🎬 Walkthrough
+        </button>
+      }
+    >
+      <div className="space-y-6">
+        {/* KPI summary */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          <Stat icon="🏡" iconBg="bg-green-100" label="Farms in scope" value={farms.length} tone="ink" sub="livestock + poultry holdings" />
+          <Stat icon="🚨" iconBg="bg-red-100" label="Active outbreaks" value={alerts.length} tone={alerts.length > 0 ? "red" : "ink"} sub={`${criticalClusters.length} critical · ${alerts.length - criticalClusters.length} emerging`} />
+          <Stat icon="🩺" iconBg="bg-blue-100" label="Reports (24h)" value={reports24h} tone="blue" sub="farmer + auto-sensed" />
+          <Stat icon="⚠️" iconBg="bg-orange-100" label="Zoonotic clusters" value={zoonoticClusters} tone={zoonoticClusters > 0 ? "amber" : "ink"} sub="animal → human spillover risk" />
+          <Stat icon="⚰️" iconBg="bg-gray-100" label="Mortality (7d)" value={mortality.d} tone={mortality.d > 0 ? "red" : "ink"} sub={mortality.d > 0 ? `crude rate ${mortality.rate}%` : "no deaths recorded"} />
+        </div>
+
         {/* Live outbreak attention banner — appears within seconds of a farmer report */}
         {newAlerts.length > 0 && (
           <div className="bg-red-600 text-white rounded-2xl p-4 shadow-lg">
@@ -267,7 +256,7 @@ export default function DashboardScreen() {
         {/* Metrics row: Programme Impact + Mortality side-by-side on desktop */}
         <div className="grid gap-5 lg:grid-cols-2 items-start">
         <section>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Programme Impact</h2>
+          <SectionTitle icon="📈">Programme impact</SectionTitle>
           <ImpactMetrics />
         </section>
 
@@ -845,8 +834,8 @@ export default function DashboardScreen() {
             </div>
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }
 

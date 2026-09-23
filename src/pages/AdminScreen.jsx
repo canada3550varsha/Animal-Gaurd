@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { api, getToken, reqError } from "../api/client.js";
+import AppShell from "../components/ui/AppShell.jsx";
+import { Stat, SectionTitle } from "../components/ui/primitives.jsx";
 import EscalationPanel from "../components/EscalationPanel.jsx";
 
 const ACTION_LABEL = {
@@ -37,7 +38,6 @@ function timeAgo(ts) {
 }
 
 export default function AdminScreen() {
-  const navigate = useNavigate();
   const [audit, setAudit] = useState(null); // { integrity, log }
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -134,72 +134,69 @@ export default function AdminScreen() {
     return { label: meta.label, icon: meta.icon, lines };
   };
 
+  const activeClusters = clusters.filter((c) => c.level === "critical" || c.level === "emerging").length;
+
   return (
-    <div className="min-h-screen bg-surface">
-      <header className="bg-gray-900 text-white px-4 py-4 shadow-md">
-        <div className="max-w-7xl mx-auto flex items-center gap-3">
-          <button
-            onClick={() => navigate("/")}
-            className="text-xs bg-white/10 hover:bg-white/20 px-2.5 py-1.5 rounded-lg text-white font-medium transition-colors"
-            title="Back to role selection"
-          >
-            🏠 Home
-          </button>
-          <div>
-            <h1 className="text-lg font-bold">Admin — District Officer Console</h1>
-            <p className="text-xs text-gray-400">Case escalations · tamper-evident SHA-256 audit chain</p>
-          </div>
+    <AppShell title="Admin — District Officer Console" subtitle="Case escalations · tamper-evident SHA-256 audit chain">
+      {/* KPI summary */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Stat icon="📜" iconBg="bg-indigo-100" label="Audit entries" value={audit ? audit.log.length : "—"} tone="ink" sub="chain includes escalations & lab results" />
+        <Stat
+          icon={audit?.integrity?.valid ? "🟢" : "🔴"}
+          iconBg={audit?.integrity?.valid ? "bg-green-100" : "bg-red-100"}
+          label="Chain integrity"
+          value={audit ? (audit.integrity?.valid ? "Intact" : "Tampered") : "—"}
+          tone={audit?.integrity?.valid ? "green" : "red"}
+          sub="SHA-256 hash chain verified"
+        />
+        <Stat icon="🚨" iconBg="bg-red-100" label="Active clusters" value={activeClusters} tone={activeClusters > 0 ? "red" : "ink"} sub={`${clusters.filter((c) => c.level === "critical").length} critical in district`} />
+      </div>
+
+      {loading && <p className="text-gray-400 text-center py-10">Loading admin console…</p>}
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl p-4 text-sm">
+          {error}
         </div>
-      </header>
+      )}
 
-      <main className="max-w-7xl mx-auto px-4 py-6 space-y-5">
-        {loading && <p className="text-gray-400 text-center py-10">Loading admin console…</p>}
+      {/* District officer watchboard: escalations + audit integrity side-by-side */}
+      <div className="grid gap-5 lg:grid-cols-2 items-start">
+        <section>
+          <SectionTitle icon="🔺">Case escalation &amp; referral ladder</SectionTitle>
+          <EscalationPanel clusters={clusters} />
+        </section>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl p-4 text-sm">
-            {error}
-          </div>
-        )}
-
-        {/* District officer watchboard: escalations + audit integrity side-by-side */}
-        <div className="grid gap-5 lg:grid-cols-2 items-start">
+        {audit && (
           <section>
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              🔺 Case Escalation &amp; Referral Ladder
-            </h2>
-            <EscalationPanel clusters={clusters} />
-          </section>
-
-          {audit && (
-            <section>
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Audit Integrity</h2>
-              <div
-                className={`rounded-2xl p-4 border ${
-                  audit.integrity?.valid
-                    ? "bg-green-50 border-green-200 text-green-800"
-                    : "bg-red-50 border-red-300 text-red-800"
-                }`}
-              >
-                <div className="flex items-center gap-2 font-semibold">
-                  <span>{audit.integrity?.valid ? "🟢" : "🔴"}</span>
-                  {audit.integrity?.valid
-                    ? "Audit chain intact — no tampering detected"
-                    : `TAMPER DETECTED at entry #${audit.integrity.brokenIndex + 1}`}
-                </div>
-                <p className="text-xs mt-1 opacity-80">
-                  SHA-256 hash chain: editing any past entry breaks all subsequent hashes.
-                </p>
+            <SectionTitle icon="🔐">Audit integrity</SectionTitle>
+            <div
+              className={`rounded-2xl p-4 border ${
+                audit.integrity?.valid
+                  ? "bg-green-50 border-green-200 text-green-800"
+                  : "bg-red-50 border-red-300 text-red-800"
+              }`}
+            >
+              <div className="flex items-center gap-2 font-semibold">
+                <span>{audit.integrity?.valid ? "🟢" : "🔴"}</span>
+                {audit.integrity?.valid
+                  ? "Audit chain intact — no tampering detected"
+                  : `TAMPER DETECTED at entry #${audit.integrity.brokenIndex + 1}`}
               </div>
-            </section>
-          )}
-        </div>
+              <p className="text-xs mt-1 opacity-80">
+                SHA-256 hash chain: editing any past entry breaks all subsequent hashes.
+              </p>
+            </div>
+          </section>
+        )}
+      </div>
 
         {audit && (
           <>
             <div>
-              <h2 className="text-xl font-bold text-gray-800 mb-3">
-                Entries <span className="text-sm font-normal text-gray-400">({audit.log.length})</span>
-              </h2>
+              <SectionTitle icon="🧾">
+                Entries <span className="text-sm font-normal text-gray-400 normal-case">({audit.log.length})</span>
+              </SectionTitle>
               {audit.log.length === 0 ? (
                 <div className="text-center py-10 text-gray-400 text-sm">
                   No audit entries yet. Actions like vet dispatch and farm registration will appear here.
@@ -240,7 +237,6 @@ export default function AdminScreen() {
             </div>
           </>
         )}
-      </main>
-    </div>
+    </AppShell>
   );
 }

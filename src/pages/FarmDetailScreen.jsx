@@ -10,6 +10,7 @@ import { RING_INNER_KM, RING_OUTER_KM } from "../api/clustering.js";
 import { api, getToken } from "../api/client.js";
 import { healthIcon, healthLabel, SAMPLE_TYPE_LABEL, SAMPLE_RESULT_LABEL, SAMPLE_STATUS_LABEL } from "../data/health.js";
 import ZoonoticBadge from "../components/ZoonoticBadge.jsx";
+import Page from "../components/ui/Page.jsx";
 
 const markerIcon = L.divIcon({
   className: "",
@@ -111,15 +112,8 @@ export default function FarmDetailScreen() {
   );
 
   return (
-    <div className="min-h-screen bg-surface">
-      <header className="bg-primary text-white px-4 py-4 shadow-md">
-        <div className="max-w-7xl mx-auto flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="text-xl" title="Back to previous screen">←</button>
-          <h1 className="text-lg font-bold">{farm.name}</h1>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 py-6 space-y-5">
+    <Page title={`${farm.name}`} sub={farm.animal_type ? `${farm.animal_type} · ${farm.village}, ${farm.taluka}` : ""} back={-1}>
+      <div className="space-y-5">
         {/* Top row: risk, environment, sensing + farm profile side-by-side on wide screens */}
         <div className="grid gap-4 xl:grid-cols-2 items-start">
         {/* FDRS Card */}
@@ -647,8 +641,8 @@ export default function FarmDetailScreen() {
             Back to Farms
           </button>
         </div>
-      </main>
-    </div>
+      </div>
+    </Page>
   );
 }
 

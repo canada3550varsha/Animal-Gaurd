@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext.jsx";
 import { SYMPTOMS, ANIMAL_ICONS } from "../data/constants.js";
+import Page from "../components/ui/Page.jsx";
 import { reqError } from "../api/client.js";
 
 export default function ReportSymptomsScreen() {
@@ -110,15 +111,7 @@ export default function ReportSymptomsScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-surface">
-      <header className="bg-primary text-white px-4 py-4 shadow-md">
-        <div className="max-w-lg mx-auto flex items-center gap-3">
-          <button onClick={() => navigate(`/farm/${farmId}`)} className="text-xl">←</button>
-          <h1 className="text-lg font-bold">Report Sick Animal/Bird</h1>
-        </div>
-      </header>
-
-      <main className="max-w-lg mx-auto px-4 py-6">
+    <Page title="Report Sick Animal/Bird" back={`/farm/${farmId}`} maxW="max-w-lg">
         <div className="flex items-center gap-3 mb-5">
           <span className="text-3xl">{categoryIcon}</span>
           <div>
@@ -247,7 +240,6 @@ export default function ReportSymptomsScreen() {
             {submitting ? "Submitting…" : `Submit Report (${selected.length} symptom${selected.length !== 1 ? "s" : ""})`}
           </button>
         </form>
-      </main>
-    </div>
+    </Page>
   );
 }

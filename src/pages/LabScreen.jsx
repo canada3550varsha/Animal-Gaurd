@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { api, getToken, reqError } from "../api/client.js";
+import AppShell from "../components/ui/AppShell.jsx";
+import { Stat } from "../components/ui/primitives.jsx";
 import { SAMPLE_TYPE_LABEL, SAMPLE_RESULT_LABEL } from "../data/health.js";
 
 function fmt(ts) {
@@ -80,7 +81,6 @@ function ResultForm({ sample, onDone }) {
 }
 
 export default function LabScreen() {
-  const navigate = useNavigate();
   const [samples, setSamples] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -120,26 +120,15 @@ export default function LabScreen() {
   const resulted = samples.filter((s) => s.status === "resulted");
 
   return (
-    <div className="min-h-screen bg-surface">
-      <header className="bg-gray-900 text-white px-4 py-4 shadow-md">
-        <div className="max-w-lg mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate("/")}
-              className="text-xs bg-white/10 hover:bg-white/20 px-2.5 py-1.5 rounded-lg text-white font-medium transition-colors shrink-0"
-              title="Back to role selection"
-            >
-              🏠 Home
-            </button>
-            <div>
-              <h1 className="text-lg font-bold">🔬 District Veterinary Laboratory</h1>
-              <p className="text-xs text-gray-400">Sample inbox — record test results, returned to farm records</p>
-            </div>
-          </div>
+    <AppShell title="District Veterinary Laboratory" subtitle="Sample inbox — record test results, returned to farm records">
+      <div className="mx-auto max-w-3xl space-y-6">
+        {/* KPI summary */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Stat icon="🧪" iconBg="bg-amber-100" label="Pending results" value={pending.length} tone="amber" sub="awaiting laboratory result" />
+          <Stat icon="🔬" iconBg="bg-green-100" label="Result returned" value={resulted.length} tone="green" sub="returned to farm records" />
+          <Stat icon="🧫" iconBg="bg-gray-100" label="Total samples" value={samples.length} tone="ink" sub="referred to this lab" />
         </div>
-      </header>
 
-      <main className="max-w-lg mx-auto px-4 py-6 space-y-6">
         {/* Pending queue */}
         <section>
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
@@ -213,7 +202,7 @@ export default function LabScreen() {
         </section>
 
         {error && <p className="text-red-600 text-sm text-center bg-red-50 rounded-xl py-2 px-3">{error}</p>}
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }

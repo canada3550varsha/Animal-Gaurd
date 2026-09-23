@@ -3,40 +3,36 @@ import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext.jsx";
 import { reqError } from "../api/client.js";
 
-// Role-selection home: replaces the old login page. Tapping a role signs the app
-// in as that role's demo user and drops straight into the role's dashboard.
+// Role-selection welcome page — replaces the old login. Tapping a role signs the
+// app in as that role's demo user and opens its dashboard directly.
 const ROLES = [
   {
     key: "farmer",
     icon: "🧑‍🌾",
     title: "Livestock Owner",
-    desc: "Farms · poultry & livestock",
+    desc: "Manage my farms, poultry & livestock, report symptoms by voice or typing.",
     accent: "bg-green-100",
-    border: "hover:border-green-300",
   },
   {
     key: "vet",
     icon: "🩺",
     title: "Veterinary Officer",
-    desc: "Outbreak dashboard",
+    desc: "District outbreak dashboard, lab diagnostics and case escalation.",
     accent: "bg-blue-100",
-    border: "hover:border-blue-300",
   },
   {
     key: "admin",
     icon: "🛡️",
     title: "Admin",
-    desc: "Audit & escalation",
+    desc: "Tamper-evident audit log and district officer escalation console.",
     accent: "bg-indigo-100",
-    border: "hover:border-indigo-300",
   },
   {
     key: "lab",
     icon: "🧪",
     title: "Lab",
-    desc: "Test reports",
+    desc: "Receive referred samples and return test results to farm records.",
     accent: "bg-amber-100",
-    border: "hover:border-amber-300",
   },
 ];
 
@@ -63,58 +59,68 @@ export default function LandingScreen() {
 
   return (
     <div className="min-h-screen bg-surface flex flex-col">
-      <header className="bg-gray-900 text-white px-4 py-6 shadow-md text-center">
-        <h1 className="text-2xl font-bold tracking-tight">
-          🐄🐔 AnimalGuard
-        </h1>
-        <p className="text-xs text-gray-400 mt-1">
-          Livestock & poultry outbreak surveillance · SIH26128
-        </p>
-      </header>
+      <main className="flex-1 flex flex-col items-center justify-center px-4 py-10">
+        {/* Logo + app identity */}
+        <div className="flex flex-col items-center">
+          <span className="w-16 h-16 rounded-2xl bg-primary shadow-lg shadow-primary/30 flex items-center justify-center text-3xl">
+            🐄
+          </span>
+          <h1 className="text-2xl font-bold text-ink mt-3 tracking-tight">AnimalGuard</h1>
+          <p className="text-sm text-gray-400 mt-1 text-center max-w-xs">
+            Livestock & poultry outbreak surveillance — early detection to response, end to end.
+          </p>
+        </div>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 w-full">
-        <p className="text-sm text-gray-600 mb-5 font-medium">Choose your role</p>
+        {/* Welcome block */}
+        <div className="text-center mt-8">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-ink tracking-tight">Welcome back</h2>
+          <p className="text-sm text-gray-500 mt-2">Choose your role to continue</p>
+        </div>
 
-        <div className="grid grid-cols-2 gap-3 w-full max-w-3xl sm:gap-4 lg:grid-cols-4">
+        {/* Role cards */}
+        <div className="w-full max-w-4xl mt-8 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
           {ROLES.map((r) => (
             <button
               key={r.key}
               onClick={() => enter(r.key)}
               disabled={busy !== null}
-              title={`Enter as ${r.title}`}
-              className={`bg-white rounded-2xl border-2 border-transparent shadow-sm p-5 flex flex-col items-center gap-2
-                          min-h-[150px] touch-manipulation select-none
-                          transition-transform duration-150 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.97]
-                          disabled:opacity-60 disabled:cursor-wait ${r.border}`}
+              title={`Continue as ${r.title}`}
+              className="relative text-left bg-white rounded-2xl border border-gray-200/80 shadow-sm p-5 pr-9 min-h-[150px]
+                         transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 hover:border-primary/40
+                         active:scale-[0.98] disabled:opacity-60 disabled:cursor-wait touch-manipulation"
             >
-              <span className={`w-16 h-16 rounded-2xl ${r.accent} flex items-center justify-center text-4xl`}>
+              <span className={`w-12 h-12 rounded-xl ${r.accent} flex items-center justify-center text-2xl`}>
                 {r.icon}
               </span>
-              <span className="text-sm font-bold text-gray-900 leading-tight text-center">{r.title}</span>
-              <span className="text-xs text-gray-500 text-center">{r.desc}</span>
-              {busy === r.key && <span className="text-xs text-gray-400 animate-pulse">Entering…</span>}
+              <p className="font-bold text-ink-soft mt-3">{r.title}</p>
+              <p className="text-xs text-gray-500 leading-snug mt-1">{r.desc}</p>
+              <span
+                className={`absolute right-3.5 top-1/2 -translate-y-1/2 text-lg text-gray-300 ${
+                  busy === r.key ? "animate-pulse text-gray-400" : ""
+                }`}
+              >
+                {busy === r.key ? "…" : "›"}
+              </span>
             </button>
           ))}
         </div>
 
         {error && (
-          <p className="text-red-600 text-sm mt-5 bg-red-50 border border-red-200 rounded-xl px-4 py-2">{error}</p>
+          <p className="text-red-600 text-sm mt-6 bg-red-50 border border-red-200 rounded-xl px-4 py-2">{error}</p>
         )}
 
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-          <button
-            onClick={() => navigate("/architecture")}
-            className="text-sm text-gray-600 hover:text-gray-900 bg-white border border-gray-200 hover:border-gray-300 px-4 py-2 rounded-xl transition-colors"
-          >
-            🔧 Architecture
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-10">
+          <button onClick={() => navigate("/architecture")} className="btn-secondary px-4 py-2.5">
+            🏗️ Architecture
           </button>
-          <button
-            onClick={() => navigate("/walkthrough")}
-            className="text-sm text-white bg-amber-500 hover:bg-amber-600 px-4 py-2 rounded-xl font-medium transition-colors"
-          >
-            🎬 Walkthrough
+          <button onClick={() => navigate("/walkthrough")} className="btn px-4 py-2.5 bg-amber-500 text-white hover:bg-amber-600">
+            🎬 Judge Walkthrough
           </button>
         </div>
+
+        <p className="text-[11px] text-gray-400 mt-6">
+          Demo instance — signing in automatically with the role's sample account
+        </p>
       </main>
     </div>
   );

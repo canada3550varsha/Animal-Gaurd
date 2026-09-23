@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import Page from "../components/ui/Page.jsx";
 
 // System Architecture — Smart India Hackathon 2026 national finalist (SIH26128).
 // Shows the 3-tier disease early-warning pipeline, clearly labeling what is LIVE
@@ -74,18 +75,8 @@ export default function ArchitectureScreen() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-surface">
-      <header className="bg-gray-900 text-white px-4 py-4 shadow-md">
-        <div className="max-w-5xl mx-auto flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="text-xl">←</button>
-          <div>
-            <h1 className="text-lg font-bold">System Architecture</h1>
-            <p className="text-xs text-gray-400">Smart India Hackathon 2026 · SIH26128 · Govt of Maharashtra</p>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-5xl mx-auto px-4 py-6 space-y-8">
+    <Page title="System Architecture" sub="Smart India Hackathon 2026 · SIH26128 · Govt of Maharashtra" maxW="max-w-5xl">
+      <div className="space-y-6">
         {/* Intro */}
         <section className="bg-white rounded-2xl border border-gray-100 p-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Animal Guard — Livestock Disease Early Warning</h2>
@@ -180,8 +171,8 @@ export default function ArchitectureScreen() {
             🎬 Judge Walkthrough
           </button>
         </section>
-      </main>
-    </div>
+      </div>
+    </Page>
   );
 }
 
