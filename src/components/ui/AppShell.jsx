@@ -19,53 +19,67 @@ const DEMO_INFO = [
 const NAV = {
   farmer: [
     {
-      label: "Main",
+      label: "Dashboard",
+      items: [{ to: "/owner", icon: "🏠", label: "Dashboard" }],
+    },
+    {
+      label: "My Farm",
       items: [
-        { to: "/owner", icon: "🏡", label: "Dashboard" },
-        { to: "/my-alerts", icon: "🔔", label: "Alerts" },
+        { to: "/my-farm", icon: "🏡", label: "My Farm", match: ["/my-farm", "/farm/"] },
       ],
     },
     {
-      label: "Farm Management",
+      label: "Health & Monitoring",
       items: [
-        { to: "/register-farm", icon: "➕", label: "Register Farm" },
-        { to: "/profile", icon: "👤", label: "Profile" },
-      ],
-    },
-    {
-      label: "Health & Reporting",
-      items: [
-        { to: "/voice-report", icon: "🎤", label: "Voice Report" },
+        { to: "/report", icon: "🩺", label: "Report Symptoms" },
         { to: "/my-reports", icon: "📄", label: "My Reports" },
         { to: "/health-records", icon: "💉", label: "Health Records" },
-        { to: "/my-lab", icon: "🧪", label: "Lab Results" },
+      ],
+    },
+    {
+      label: "Prevention & Care",
+      items: [{ to: "/my-lab", icon: "🧪", label: "Lab Results" }],
+    },
+    {
+      label: "Alerts",
+      items: [{ to: "/my-alerts", icon: "🔔", label: "My Alerts" }],
+    },
+    {
+      label: "Account",
+      items: [
+        { to: "/profile", icon: "👤", label: "Profile" },
+        { to: "/register-farm", icon: "➕", label: "Register Farm" },
       ],
     },
   ],
   vet: [
     {
-      label: "Main",
+      label: "Dashboard",
       items: [{ to: "/vet", icon: "📊", label: "Dashboard" }],
     },
     {
-      label: "Operations",
+      label: "Cases",
       items: [
-        { to: "/vet/cases", icon: "🚨", label: "Cases & Alerts" },
-        { to: "/vet/map", icon: "🗺️", label: "Outbreak Map" },
-        { to: "/vet/farms", icon: "🏡", label: "District Farms" },
-      ],
-    },
-    {
-      label: "Lab & Health",
-      items: [
-        { to: "/vet/samples", icon: "🧪", label: "Lab Referrals" },
-        { to: "/vet/health", icon: "💉", label: "Herd Health" },
-      ],
-    },
-    {
-      label: "Response & Insights",
-      items: [
+        { to: "/vet/cases", icon: "🚨", label: "Alert Queue" },
         { to: "/vet/escalations", icon: "🔺", label: "Escalations" },
+      ],
+    },
+    {
+      label: "Farms",
+      items: [{ to: "/vet/farms", icon: "🏡", label: "Assigned Farms" }],
+    },
+    {
+      label: "Health",
+      items: [{ to: "/vet/health", icon: "💉", label: "Herd Health" }],
+    },
+    {
+      label: "Lab",
+      items: [{ to: "/vet/samples", icon: "🧪", label: "Lab Referrals" }],
+    },
+    {
+      label: "Outbreak & Insights",
+      items: [
+        { to: "/vet/map", icon: "🗺️", label: "Outbreak Map" },
         { to: "/vet/impact", icon: "📈", label: "Impact & Mortality" },
       ],
     },

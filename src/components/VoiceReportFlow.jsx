@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext.jsx";
 import { SYMPTOMS, ANIMAL_ICONS } from "../data/constants.js";
 import {
@@ -79,8 +79,9 @@ function locateFarm() {
   });
 }
 
-export default function VoiceReportScreen() {
-  const { farmId: urlFarmId } = useParams();
+// Voice reporting conversation, embeddable in the unified Report page.
+// `urlFarmId` pre-sets the farm and skips the farm-selection step.
+export default function VoiceReportFlow({ urlFarmId = "", onSubmitted }) {
   const navigate = useNavigate();
   const { farms, addReport, addFarm } = useApp();
 
@@ -398,26 +399,34 @@ export default function VoiceReportScreen() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="text-center bg-white rounded-2xl p-8 shadow-sm max-w-sm w-full">
-          <div className="text-5xl mb-4">🎤✅</div>
-          <h2 className="text-xl font-bold mb-2">
-            {lang === "hi"
-              ? "रिपोर्ट भेज दी गई!"
-              : lang === "mr"
-                ? "अहवाल पाठवला गेला!"
-                : "Report Sent!"}
-          </h2>
-          <p className="text-sm text-gray-500 mb-1">{t.done}</p>
-          <p className="text-xs text-gray-400 mb-6">
-            Your veterinary team has been notified and is watching the area.
-          </p>
+      <div className="text-center bg-white rounded-2xl p-8 shadow-sm max-w-sm mx-auto">
+        <div className="text-5xl mb-4">🎤✅</div>
+        <h2 className="text-xl font-bold mb-2">
+          {lang === "hi"
+            ? "रिपोर्ट भेज दी गई!"
+            : lang === "mr"
+              ? "अहवाल पाठवला गेला!"
+              : "Report Sent!"}
+        </h2>
+        <p className="text-sm text-gray-500 mb-1">{t.done}</p>
+        <p className="text-xs text-gray-400 mb-6">
+          Your veterinary team has been notified and is watching the area.
+        </p>
+        <div className="flex gap-2">
           <button
-            onClick={() => navigate(farm?.farm_id ? `/farm/${farm.farm_id}` : "/")}
-            className="w-full py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary-dark transition-colors"
+            onClick={() => navigate(farm?.farm_id ? `/farm/${farm.farm_id}` : "/my-farm")}
+            className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary-dark transition-colors"
           >
             View Farm
           </button>
+          {onSubmitted && (
+            <button
+              onClick={onSubmitted}
+              className="flex-1 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors"
+            >
+              Done
+            </button>
+          )}
         </div>
       </div>
     );
@@ -431,284 +440,255 @@ export default function VoiceReportScreen() {
     step === "notes" ? true : false;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-primary text-white px-4 py-4">
-        <div className="max-w-lg mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold">🎤 Voice Report (No Typing)</h1>
-            <p className="text-white/80 text-xs">
-              You speak · I listen · {VOICE_LANGS.find((l) => l.code === lang)?.label}
-            </p>
-          </div>
-          <button onClick={() => navigate(-1)} className="text-sm bg-white/20 px-3 py-1.5 rounded-lg">
-            ← Back
-          </button>
-        </div>
-        {/* progress */}
-        <div className="max-w-lg mx-auto mt-3 flex gap-1.5">
-          {STEPS.map((s, i) => (
-            <div
-              key={s}
-              className={`h-1.5 flex-1 rounded-full ${i < stepIdx ? "bg-amber-400" : i === stepIdx ? "bg-white" : "bg-white/30"}`}
-            />
-          ))}
-        </div>
-        <p className="max-w-lg mx-auto mt-1 text-[11px] text-white/70">
-          {stepIdx + 1} of {STEPS.length} ·
-          {t[
-            step === "farm"
-              ? "pickFarm"
-              : step === "lang"
-                ? "pickLang"
-                : step === "count"
-                  ? "qCount"
-                  : step === "symptoms"
-                    ? "qSymptoms"
-                    : "qNotes"
-          ] || ""}
-        </p>
-      </header>
+    <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5">
+      {/* progress */}
+      <div className="flex gap-1.5 mb-3">
+        {STEPS.map((s, i) => (
+          <div
+            key={s}
+            className={`h-1.5 flex-1 rounded-full ${i < stepIdx ? "bg-amber-400" : i === stepIdx ? "bg-primary" : "bg-gray-200"}`}
+          />
+        ))}
+      </div>
 
-      <main className="max-w-lg mx-auto px-4 py-6">
-        {/* conversation bubbles */}
-        <div className="space-y-3">
-          {(step === "farm" || step === "lang" || step === "count" || step === "symptoms" || step === "notes") && (
-            <Bubble
-              who="app"
-              text={step === "farm" ? t.pickFarm : step === "lang" ? t.pickLang : step === "count" ? t.qCount : step === "symptoms" ? t.qSymptoms : t.qNotes}
-              onSpeak={() =>
-                speak(step === "farm" ? t.pickFarm : step === "lang" ? t.pickLang : step === "count" ? t.qCount : step === "symptoms" ? t.qSymptoms : t.qNotes)
-              }
-            />
-          )}
-          {activeAnswer && <Bubble who="user" text={activeAnswer} />}
-          {interim && <Bubble who="user" text={`${interim}…`} dim />}
-          {lastAnswer && !activeAnswer && step !== "count" && <Bubble who="user" text={lastAnswer} dim />}
-        </div>
-
-        {error && (
-          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-4">
-            {error}
-          </p>
+      {/* conversation bubbles */}
+      <div className="space-y-3">
+        {(step === "farm" || step === "lang" || step === "count" || step === "symptoms" || step === "notes") && (
+          <Bubble
+            who="app"
+            text={step === "farm" ? t.pickFarm : step === "lang" ? t.pickLang : step === "count" ? t.qCount : step === "symptoms" ? t.qSymptoms : t.qNotes}
+            onSpeak={() =>
+              speak(step === "farm" ? t.pickFarm : step === "lang" ? t.pickLang : step === "count" ? t.qCount : step === "symptoms" ? t.qSymptoms : t.qNotes)
+            }
+          />
         )}
+        {activeAnswer && <Bubble who="user" text={activeAnswer} />}
+        {interim && <Bubble who="user" text={`${interim}…`} dim />}
+        {lastAnswer && !activeAnswer && step !== "count" && <Bubble who="user" text={lastAnswer} dim />}
+      </div>
 
-        {/* step controls */}
-        <div className="mt-6 space-y-4">
-          {step === "farm" && (
-            <div className="space-y-4">
-              <MicControl
-                listening={listening}
-                onToggle={startListening}
-                prompt={listening ? "Listening… say the farm name" : "Tap the mic and say the farm name"}
-                note={sttNote(lang)}
-              >
-                {(lastAnswer || interim) && (
-                  <p className="text-center text-[11px] text-gray-500">
-                    I heard: <span className="font-medium text-gray-700">“{interim || lastAnswer}”</span>
-                  </p>
-                )}
-                <TypePad
-                  speechOk={speechOk}
-                  value={typedOverride}
-                  onChange={setTypedOverride}
-                  placeholder="Farm name — registered or new"
-                />
-                {busyFarm && (
-                  <p className="text-center text-xs text-primary font-medium">Registering your farm…</p>
-                )}
-              </MicControl>
+      {error && (
+        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-4">
+          {error}
+        </p>
+      )}
 
-              <div>
-                <p className="text-xs text-gray-500 mb-2">{t.farmList}</p>
-                <div className="grid grid-cols-1 gap-2">
-                  {farms.map((f) => (
-                    <button
-                      key={f.farm_id}
-                      onClick={() => {
-                        setFarmId(f.farm_id);
-                        next();
-                      }}
-                      className={`flex items-center justify-between px-4 py-3 rounded-xl border bg-white transition-colors ${
-                        farmId === f.farm_id ? "border-primary ring-2 ring-primary/30" : "border-gray-200"
-                      }`}
-                    >
-                      <span className="font-medium text-sm">{f.name}</span>
-                      <span className="text-gray-400 text-xs">{ANIMAL_ICONS[f.animal_category]?.[f.animal_type] || "🐾"}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+      {/* step controls */}
+      <div className="mt-6 space-y-4">
+        {step === "farm" && (
+          <div className="space-y-4">
+            <MicControl
+              listening={listening}
+              onToggle={startListening}
+              prompt={listening ? "Listening… say the farm name" : "Tap the mic and say the farm name"}
+              note={sttNote(lang)}
+            >
+              {(lastAnswer || interim) && (
+                <p className="text-center text-[11px] text-gray-500">
+                  I heard: <span className="font-medium text-gray-700">“{interim || lastAnswer}”</span>
+                </p>
+              )}
+              <TypePad
+                speechOk={speechOk}
+                value={typedOverride}
+                onChange={setTypedOverride}
+                placeholder="Farm name — registered or new"
+              />
+              {busyFarm && (
+                <p className="text-center text-xs text-primary font-medium">Registering your farm…</p>
+              )}
+            </MicControl>
 
-              <p className="text-[11px] text-gray-400 text-center">{t.farmNewHint}</p>
-            </div>
-          )}
-
-          {step === "lang" && (
             <div>
-              <div className="grid grid-cols-3 gap-2">
-                {VOICE_LANGS.map((l) => (
+              <p className="text-xs text-gray-500 mb-2">{t.farmList}</p>
+              <div className="grid grid-cols-1 gap-2">
+                {farms.map((f) => (
                   <button
-                    key={l.code}
+                    key={f.farm_id}
                     onClick={() => {
-                      setLang(l.code);
-                      const from = STEPS.indexOf("lang");
-                      let nxt = from + 1;
-                      if (urlFarmId && STEPS[nxt] === "farm") nxt += 1;
-                      setStepIdx(nxt);
+                      setFarmId(f.farm_id);
+                      next();
                     }}
-                    className={`py-3 rounded-xl border bg-white text-sm font-semibold transition-colors ${
-                      lang === l.code ? "border-primary ring-2 ring-primary/30 text-primary" : "border-gray-200 text-gray-700"
+                    className={`flex items-center justify-between px-4 py-3 rounded-xl border bg-white transition-colors ${
+                      farmId === f.farm_id ? "border-primary ring-2 ring-primary/30" : "border-gray-200"
                     }`}
                   >
-                    {l.label}
+                    <span className="font-medium text-sm">{f.name}</span>
+                    <span className="text-gray-400 text-xs">{ANIMAL_ICONS[f.animal_category]?.[f.animal_type] || "🐾"}</span>
                   </button>
                 ))}
               </div>
-              {sttNote(lang) && (
-                <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mt-3">
-                  🎧 {sttNote(lang)}
-                </p>
-              )}
             </div>
-          )}
 
-          {(step === "count" || step === "symptoms" || step === "notes") && (
-            <>
-              <MicControl
-                listening={listening}
-                onToggle={startListening}
-                prompt={listening ? "Listening… speak now" : "Tap the mic and speak your answer"}
-                note={sttNote(lang)}
-              >
-                {(lastAnswer || interim) && (
-                  <p className="text-center text-[11px] text-gray-500">
-                    I heard: <span className="font-medium text-gray-700">“{interim || lastAnswer}”</span>
-                  </p>
-                )}
-                <TypePad
-                  speechOk={speechOk}
-                  value={typedOverride}
-                  onChange={setTypedOverride}
-                  placeholder={step === "count" ? "e.g. 5" : step === "symptoms" ? "e.g. fever" : "optional"}
-                />
-              </MicControl>
+            <p className="text-[11px] text-gray-400 text-center">{t.farmNewHint}</p>
+          </div>
+        )}
 
-              {/* detected symptom chips */}
-              {step === "symptoms" && detectedSymptoms.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 p-3">
-                  <p className="text-xs text-gray-500 mb-2">I heard these symptoms — tap to remove:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {detectedSymptoms.map((id) => {
-                      const s = symptoms.find((x) => x.id === id);
-                      return (
-                        <button
-                          key={id}
-                          onClick={() => toggleDetected(id)}
-                          className={`text-sm px-3 py-1.5 rounded-full border font-medium transition-colors ${
-                            detectedSymptoms.includes(id)
-                              ? "bg-red-100 border-red-300 text-red-700"
-                              : "bg-gray-100 border-gray-300 text-gray-500"
-                          }`}
-                        >
-                          {s?.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {step === "symptoms" && symptoms.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 p-3">
-                  <p className="text-xs text-gray-500 mb-2">Or add a symptom yourself (tap):</p>
-                  <div className="flex flex-wrap gap-2">
-                    {symptoms.map((s) => {
-                      const on = detectedSymptoms.includes(s.id);
-                      return (
-                        <button
-                          key={s.id}
-                          onClick={() => toggleDetected(s.id)}
-                          className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
-                            on
-                              ? "bg-red-100 border-red-300 text-red-700"
-                              : "bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200"
-                          }`}
-                        >
-                          {on ? "✓ " : ""}{s.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-
-          {step === "review" && (
-            <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
-              <p className="text-sm font-semibold text-gray-700">Review your voice report</p>
-              <Row k="Farm" v={farm?.name} />
-              <Row k="Affected" v={`${computePayload().affected_count} animal(s)`} />
-              <Row k="Symptoms" v={(computePayload().symptoms.map((id) => symptoms.find((s) => s.id === id)?.label).filter(Boolean).join(", ")) || "—"} />
-              <Row k="Notes" v={notesAns || "—"} />
-              <button
-                onClick={() => setStepIdx(STEPS.indexOf("symptoms"))}
-                className="text-xs text-primary underline mt-1"
-              >
-                ← Change symptoms
-              </button>
+        {step === "lang" && (
+          <div>
+            <div className="grid grid-cols-3 gap-2">
+              {VOICE_LANGS.map((l) => (
+                <button
+                  key={l.code}
+                  onClick={() => {
+                    setLang(l.code);
+                    const from = STEPS.indexOf("lang");
+                    let nxt = from + 1;
+                    if (urlFarmId && STEPS[nxt] === "farm") nxt += 1;
+                    setStepIdx(nxt);
+                  }}
+                  className={`py-3 rounded-xl border bg-white text-sm font-semibold transition-colors ${
+                    lang === l.code ? "border-primary ring-2 ring-primary/30 text-primary" : "border-gray-200 text-gray-700"
+                  }`}
+                >
+                  {l.label}
+                </button>
+              ))}
             </div>
-          )}
-
-          {/* action buttons */}
-          <div className="flex gap-2">
-            {stepIdx > 0 && step !== "review" && (
-              <button
-                onClick={() => setStepIdx((i) => Math.max(0, i - 1))}
-                className="flex-1 py-3 bg-white border border-gray-200 text-gray-600 font-semibold rounded-xl"
-              >
-                ← Back
-              </button>
-            )}
-            {step === "farm" && (
-              <button
-                onClick={() => applyAnswer(typedOverride || lastAnswer)}
-                disabled={!canContinue && !typedOverride.trim() && !lastAnswer}
-                className={`flex-1 py-3 rounded-xl font-semibold transition-colors ${
-                  canContinue || typedOverride.trim() || lastAnswer
-                    ? "bg-primary text-white"
-                    : "bg-gray-200 text-gray-400"
-                }`}
-              >
-                {typedOverride.trim() || lastAnswer ? "Use this farm →" : "Continue"}
-              </button>
-            )}
-            {step === "lang" && <div className="flex-1" />}
-            {(step === "count" || step === "symptoms" || step === "notes") && (
-              <button
-                onClick={() => applyAnswer(activeAnswer || typedOverride || lastAnswer)}
-                disabled={!canContinue && !typedOverride.trim()}
-                className={`flex-1 py-3 rounded-xl font-semibold transition-colors ${
-                  activeAnswer || typedOverride.trim()
-                    ? "bg-amber-500 text-white"
-                    : "bg-gray-200 text-gray-400"
-                }`}
-              >
-                {step === "count" ? "That's the number →" : "Next question →"}
-              </button>
-            )}
-            {step === "review" && (
-              <button
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-colors"
-              >
-                {submitting ? "Sending…" : "✅ Submit report"}
-              </button>
+            {sttNote(lang) && (
+              <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mt-3">
+                🎧 {sttNote(lang)}
+              </p>
             )}
           </div>
+        )}
+
+        {(step === "count" || step === "symptoms" || step === "notes") && (
+          <>
+            <MicControl
+              listening={listening}
+              onToggle={startListening}
+              prompt={listening ? "Listening… speak now" : "Tap the mic and speak your answer"}
+              note={sttNote(lang)}
+            >
+              {(lastAnswer || interim) && (
+                <p className="text-center text-[11px] text-gray-500">
+                  I heard: <span className="font-medium text-gray-700">“{interim || lastAnswer}”</span>
+                </p>
+              )}
+              <TypePad
+                speechOk={speechOk}
+                value={typedOverride}
+                onChange={setTypedOverride}
+                placeholder={step === "count" ? "e.g. 5" : step === "symptoms" ? "e.g. fever" : "optional"}
+              />
+            </MicControl>
+
+            {/* detected symptom chips */}
+            {step === "symptoms" && detectedSymptoms.length > 0 && (
+              <div className="bg-white rounded-xl border border-gray-200 p-3">
+                <p className="text-xs text-gray-500 mb-2">I heard these symptoms — tap to remove:</p>
+                <div className="flex flex-wrap gap-2">
+                  {detectedSymptoms.map((id) => {
+                    const s = symptoms.find((x) => x.id === id);
+                    return (
+                      <button
+                        key={id}
+                        onClick={() => toggleDetected(id)}
+                        className={`text-sm px-3 py-1.5 rounded-full border font-medium transition-colors ${
+                          detectedSymptoms.includes(id)
+                            ? "bg-red-100 border-red-300 text-red-700"
+                            : "bg-gray-100 border-gray-300 text-gray-500"
+                        }`}
+                      >
+                        {s?.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {step === "symptoms" && symptoms.length > 0 && (
+              <div className="bg-white rounded-xl border border-gray-200 p-3">
+                <p className="text-xs text-gray-500 mb-2">Or add a symptom yourself (tap):</p>
+                <div className="flex flex-wrap gap-2">
+                  {symptoms.map((s) => {
+                    const on = detectedSymptoms.includes(s.id);
+                    return (
+                      <button
+                        key={s.id}
+                        onClick={() => toggleDetected(s.id)}
+                        className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
+                          on
+                            ? "bg-red-100 border-red-300 text-red-700"
+                            : "bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200"
+                        }`}
+                      >
+                        {on ? "✓ " : ""}{s.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {step === "review" && (
+          <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
+            <p className="text-sm font-semibold text-gray-700">Review your voice report</p>
+            <Row k="Farm" v={farm?.name} />
+            <Row k="Affected" v={`${computePayload().affected_count} animal(s)`} />
+            <Row k="Symptoms" v={(computePayload().symptoms.map((id) => symptoms.find((s) => s.id === id)?.label).filter(Boolean).join(", ")) || "—"} />
+            <Row k="Notes" v={notesAns || "—"} />
+            <button
+              onClick={() => setStepIdx(STEPS.indexOf("symptoms"))}
+              className="text-xs text-primary underline mt-1"
+            >
+              ← Change symptoms
+            </button>
+          </div>
+        )}
+
+        {/* action buttons */}
+        <div className="flex gap-2">
+          {stepIdx > 0 && step !== "review" && (
+            <button
+              onClick={() => setStepIdx((i) => Math.max(0, i - 1))}
+              className="flex-1 py-3 bg-white border border-gray-200 text-gray-600 font-semibold rounded-xl"
+            >
+              ← Back
+            </button>
+          )}
+          {step === "farm" && (
+            <button
+              onClick={() => applyAnswer(typedOverride || lastAnswer)}
+              disabled={!canContinue && !typedOverride.trim() && !lastAnswer}
+              className={`flex-1 py-3 rounded-xl font-semibold transition-colors ${
+                canContinue || typedOverride.trim() || lastAnswer
+                  ? "bg-primary text-white"
+                  : "bg-gray-200 text-gray-400"
+              }`}
+            >
+              {typedOverride.trim() || lastAnswer ? "Use this farm →" : "Continue"}
+            </button>
+          )}
+          {step === "lang" && <div className="flex-1" />}
+          {(step === "count" || step === "symptoms" || step === "notes") && (
+            <button
+              onClick={() => applyAnswer(activeAnswer || typedOverride || lastAnswer)}
+              disabled={!canContinue && !typedOverride.trim()}
+              className={`flex-1 py-3 rounded-xl font-semibold transition-colors ${
+                activeAnswer || typedOverride.trim()
+                  ? "bg-amber-500 text-white"
+                  : "bg-gray-200 text-gray-400"
+              }`}
+            >
+              {step === "count" ? "That's the number →" : "Next question →"}
+            </button>
+          )}
+          {step === "review" && (
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-colors"
+            >
+              {submitting ? "Sending…" : "✅ Submit report"}
+            </button>
+          )}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

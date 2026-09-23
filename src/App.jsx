@@ -1,11 +1,11 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import { useApp } from "./context/AppContext.jsx";
 import LandingScreen from "./pages/LandingScreen.jsx";
 import HomeScreen from "./pages/HomeScreen.jsx";
+import MyFarmScreen from "./pages/MyFarmScreen.jsx";
+import ReportScreen from "./pages/ReportScreen.jsx";
 import RegisterFarmScreen from "./pages/RegisterFarmScreen.jsx";
 import FarmDetailScreen from "./pages/FarmDetailScreen.jsx";
-import ReportSymptomsScreen from "./pages/ReportSymptomsScreen.jsx";
-import VoiceReportScreen from "./pages/VoiceReportScreen.jsx";
 import AdminScreen from "./pages/AdminScreen.jsx";
 import ArchitectureScreen from "./pages/ArchitectureScreen.jsx";
 import WalkthroughScreen from "./pages/WalkthroughScreen.jsx";
@@ -26,6 +26,16 @@ import HealthRecordsScreen from "./pages/HealthRecordsScreen.jsx";
 import MyAlertsScreen from "./pages/MyAlertsScreen.jsx";
 import MyLabResultsScreen from "./pages/MyLabResultsScreen.jsx";
 import ProfileScreen from "./pages/ProfileScreen.jsx";
+
+function RedirectToReport() {
+  const { farmId } = useParams();
+  return <Navigate to={`/report?farm=${farmId}`} replace />;
+}
+
+function RedirectToVoiceReport() {
+  const { farmId } = useParams();
+  return <Navigate to={`/report?farm=${farmId}&mode=voice`} replace />;
+}
 
 export default function App() {
   const { user, authLoaded } = useApp();
@@ -52,6 +62,8 @@ export default function App() {
 
         {/* Farmer */}
         <Route path="/owner" element={farmerOnly ? <HomeScreen /> : <Navigate to="/" />} />
+        <Route path="/my-farm" element={farmerOnly ? <MyFarmScreen /> : <Navigate to="/" />} />
+        <Route path="/report" element={farmerOnly ? <ReportScreen /> : <Navigate to="/" />} />
         <Route path="/my-reports" element={farmerOnly ? <MyReportsScreen /> : <Navigate to="/" />} />
         <Route path="/health-records" element={farmerOnly ? <HealthRecordsScreen /> : <Navigate to="/" />} />
         <Route path="/my-alerts" element={farmerOnly ? <MyAlertsScreen /> : <Navigate to="/" />} />
@@ -59,9 +71,9 @@ export default function App() {
         <Route path="/profile" element={user ? <ProfileScreen /> : <Navigate to="/" />} />
         <Route path="/register-farm" element={user ? <RegisterFarmScreen /> : <Navigate to="/" />} />
         <Route path="/farm/:farmId" element={user ? <FarmDetailScreen /> : <Navigate to="/" />} />
-        <Route path="/farm/:farmId/report" element={user ? <ReportSymptomsScreen /> : <Navigate to="/" />} />
-        <Route path="/farm/:farmId/voice" element={user ? <VoiceReportScreen /> : <Navigate to="/" />} />
-        <Route path="/voice-report" element={user ? <VoiceReportScreen /> : <Navigate to="/" />} />
+        <Route path="/farm/:farmId/report" element={user ? <RedirectToReport /> : <Navigate to="/" />} />
+        <Route path="/farm/:farmId/voice" element={user ? <RedirectToVoiceReport /> : <Navigate to="/" />} />
+        <Route path="/voice-report" element={user ? <Navigate to="/report?mode=voice" replace /> : <Navigate to="/" />} />
 
         {/* Vet */}
         <Route path="/vet" element={vetOnly ? <VetDashboardScreen /> : <Navigate to="/" />} />
