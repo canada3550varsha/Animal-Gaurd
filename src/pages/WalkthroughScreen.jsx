@@ -160,8 +160,8 @@ function WalkthroughInner() {
 
   // The walkthrough authenticates internally; before sending the judge into the
   // officer/admin screens, also log the app session in as the demo admin so
-  // /dashboard and /admin are reachable (otherwise a farmer session redirects
-  // both to the SAME home page).
+  // /admin (and role-scoped vet screens) are reachable (otherwise a farmer
+  // session redirects both to the SAME home page).
   const jumpOut = async (path) => {
     setBusy(true);
     setError("");
@@ -407,7 +407,7 @@ function WalkthroughInner() {
               </p>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => jumpOut("/dashboard")} className="flex-1 py-3 bg-gray-900 text-white rounded-xl font-semibold">View Officer Dashboard</button>
+              <button onClick={() => jumpOut("/admin")} className="flex-1 py-3 bg-gray-900 text-white rounded-xl font-semibold">View Admin Console</button>
               <button onClick={() => jumpOut("/admin")} className="flex-1 py-3 bg-primary text-white rounded-xl font-semibold">View Audit Log</button>
             </div>
           </div>

@@ -75,6 +75,10 @@ export const api = {
   escalations: (token) => request("/escalations", { token }),
   escalationStatus: (token, id, payload) => request(`/escalations/${id}/status`, { method: "POST", body: payload, token }),
 
+  // Admin: audit-logged, gated access to identified CRITICAL-case farms.
+  criticalAccess: (token, cluster_id, reason) =>
+    request("/admin/critical-access", { method: "POST", body: { cluster_id, reason }, token }),
+
   samples: (token) => request("/samples", { token }),
   createSample: (token, payload) => request("/samples", { method: "POST", body: payload, token }),
   recordSampleResult: (token, id, payload) =>

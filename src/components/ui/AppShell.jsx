@@ -9,30 +9,99 @@ const ROLE_LABEL = {
   lab: "Lab Analyst",
 };
 
-// Actual sections of this app, mapped per role. Nothing invented — every entry
-// points at a real route that already exists/works.
-const NAV = {
-  farmer: [
-    { to: "/owner", icon: "🏡", label: "My Farms" },
-    { to: "/register-farm", icon: "➕", label: "Register Farm" },
-    { to: "/voice-report", icon: "🎤", label: "Voice Report" },
-  ],
-  vet: [
-    { to: "/vet", icon: "📊", label: "Dashboard", match: ["/vet", "/dashboard"] },
-    { to: "/owner", icon: "🏡", label: "Farms" },
-    { to: "/register-farm", icon: "➕", label: "Register Farm" },
-  ],
-  admin: [
-    { to: "/vet", icon: "📊", label: "Watchboard", match: ["/vet", "/dashboard"] },
-    { to: "/admin", icon: "🛡️", label: "Audit Log" },
-  ],
-  lab: [{ to: "/lab", icon: "🧪", label: "Sample Inbox" }],
-};
-
-const MORE = [
+// Role-scoped navigation, grouped into labelled sections. Every entry points at
+// a real route. The DEMO/INFORMATION group is shared by all roles.
+const DEMO_INFO = [
   { to: "/architecture", icon: "🏗️", label: "Architecture" },
   { to: "/walkthrough", icon: "🎬", label: "Walkthrough" },
 ];
+
+const NAV = {
+  farmer: [
+    {
+      label: "Main",
+      items: [
+        { to: "/owner", icon: "🏡", label: "Dashboard" },
+        { to: "/my-alerts", icon: "🔔", label: "Alerts" },
+      ],
+    },
+    {
+      label: "Farm Management",
+      items: [
+        { to: "/register-farm", icon: "➕", label: "Register Farm" },
+        { to: "/profile", icon: "👤", label: "Profile" },
+      ],
+    },
+    {
+      label: "Health & Reporting",
+      items: [
+        { to: "/voice-report", icon: "🎤", label: "Voice Report" },
+        { to: "/my-reports", icon: "📄", label: "My Reports" },
+        { to: "/health-records", icon: "💉", label: "Health Records" },
+        { to: "/my-lab", icon: "🧪", label: "Lab Results" },
+      ],
+    },
+  ],
+  vet: [
+    {
+      label: "Main",
+      items: [{ to: "/vet", icon: "📊", label: "Dashboard" }],
+    },
+    {
+      label: "Operations",
+      items: [
+        { to: "/vet/cases", icon: "🚨", label: "Cases & Alerts" },
+        { to: "/vet/map", icon: "🗺️", label: "Outbreak Map" },
+        { to: "/vet/farms", icon: "🏡", label: "District Farms" },
+      ],
+    },
+    {
+      label: "Lab & Health",
+      items: [
+        { to: "/vet/samples", icon: "🧪", label: "Lab Referrals" },
+        { to: "/vet/health", icon: "💉", label: "Herd Health" },
+      ],
+    },
+    {
+      label: "Response & Insights",
+      items: [
+        { to: "/vet/escalations", icon: "🔺", label: "Escalations" },
+        { to: "/vet/impact", icon: "📈", label: "Impact & Mortality" },
+      ],
+    },
+  ],
+  admin: [
+    {
+      label: "Main",
+      items: [{ to: "/admin", icon: "🛡️", label: "Surveillance" }],
+    },
+    {
+      label: "Response",
+      items: [{ to: "/admin/escalations", icon: "🔺", label: "Escalations" }],
+    },
+    {
+      label: "Oversight",
+      items: [
+        { to: "/admin/audit", icon: "🧾", label: "Audit Log" },
+        { to: "/admin/critical", icon: "🚨", label: "Critical Case Access" },
+      ],
+    },
+  ],
+  lab: [
+    {
+      label: "Main",
+      items: [{ to: "/lab", icon: "📊", label: "Dashboard" }],
+    },
+    {
+      label: "Samples",
+      items: [
+        { to: "/lab/inbox", icon: "📥", label: "Inbox" },
+        { to: "/lab/results", icon: "🔬", label: "Completed" },
+        { to: "/lab/history", icon: "🧾", label: "History" },
+      ],
+    },
+  ],
+};
 
 function NavButton({ item, collapsed, onNavigate }) {
   const { pathname } = useLocation();
@@ -75,7 +144,9 @@ export default function AppShell({ title, subtitle, actions, children }) {
     navigate(to);
   };
 
-  const bellTarget = role === "vet" || role === "admin" ? "/vet" : role === "lab" ? "/lab" : "/owner";
+  const bellTarget = role === "vet" ? "/vet/cases" : role === "admin" ? "/admin" : role === "lab" ? "/lab/inbox" : "/my-alerts";
+
+  const groups = NAV[role] || [];
 
   const sidebar = (
     <div className="flex flex-col h-full">
@@ -89,16 +160,30 @@ export default function AppShell({ title, subtitle, actions, children }) {
         )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
-        {(NAV[role] || []).map((item) => (
-          <NavButton key={item.to + item.label} item={item} collapsed={collapsed} onNavigate={goTo} />
+      <nav className="flex-1 overflow-y-auto px-3 py-2">
+        {groups.map((group, gi) => (
+          <div key={group.label} className={gi > 0 ? "mt-4" : ""}>
+            {!collapsed && (
+              <p className="px-3 pb-1 text-[10px] uppercase tracking-widest text-slate-500">{group.label}</p>
+            )}
+            <div className="space-y-1">
+              {group.items.map((item) => (
+                <NavButton key={item.to + item.label} item={item} collapsed={collapsed} onNavigate={goTo} />
+              ))}
+            </div>
+          </div>
         ))}
-        {!collapsed && (
-          <p className="pt-3 pb-1 px-3 text-[10px] uppercase tracking-widest text-slate-500">More</p>
-        )}
-        {MORE.map((item) => (
-          <NavButton key={item.to} item={item} collapsed={collapsed} onNavigate={goTo} />
-        ))}
+
+        <div className="mt-4 border-t border-white/10 pt-3">
+          {!collapsed && (
+            <p className="px-3 pb-1 text-[10px] uppercase tracking-widest text-slate-500">Demo / Information</p>
+          )}
+          <div className="space-y-1">
+            {DEMO_INFO.map((item) => (
+              <NavButton key={item.to} item={item} collapsed={collapsed} onNavigate={goTo} />
+            ))}
+          </div>
+        </div>
       </nav>
 
       <div className="p-3 border-t border-white/10 space-y-1">

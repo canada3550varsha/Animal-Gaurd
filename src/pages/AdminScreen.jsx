@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { api, getToken, reqError } from "../api/client.js";
 import AppShell from "../components/ui/AppShell.jsx";
+import PrivacyNotice from "../components/ui/PrivacyNotice.jsx";
 import { Stat, SectionTitle } from "../components/ui/primitives.jsx";
-import EscalationPanel from "../components/EscalationPanel.jsx";
 
 const ACTION_LABEL = {
   register_farm: { label: "Register Farm", icon: "🏡" },
@@ -16,6 +16,7 @@ const ACTION_LABEL = {
   lab_result: { label: "Lab Result", icon: "🔬" },
   escalation: { label: "Case Escalated", icon: "🔺" },
   escalation_followup: { label: "Escalation Follow-up", icon: "🔁" },
+  critical_case_access: { label: "Critical Case Access", icon: "🚨" },
 };
 
 const ACTOR_LABEL = {
@@ -126,6 +127,11 @@ export default function AdminScreen() {
       lines.push(`📍 ${data.village}, ${data.district}`);
       lines.push(`Status → ${data.status.toUpperCase()}`);
       if (data.note) lines.push(`📝 ${data.note}`);
+    } else if (a.action === "critical_case_access") {
+      lines.push(`🚨 CRITICAL cluster ${data.cluster_id} — ${data.village}`);
+      lines.push(`${data.report_count} case(s) · ${data.farm_count} farm(s) · ${data.animal_category || "—"}`);
+      lines.push(`Released ${(data.farms_accessed || []).length} identified farm(s)`);
+      lines.push(`Reason: ${data.reason || "—"}`);
     } else {
       lines.push(`${data.report_count} case(s) · ${data.farm_count} farm(s) · ${data.animal_category || "—"}`);
       lines.push(`📍 ${data.village}`);
@@ -137,7 +143,8 @@ export default function AdminScreen() {
   const activeClusters = clusters.filter((c) => c.level === "critical" || c.level === "emerging").length;
 
   return (
-    <AppShell title="Admin — District Officer Console" subtitle="Case escalations · tamper-evident SHA-256 audit chain">
+    <AppShell title="Audit Log" subtitle="Tamper-evident SHA-256 chain of every privileged action">
+      <PrivacyNotice role="admin" />
       {/* KPI summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Stat icon="📜" iconBg="bg-indigo-100" label="Audit entries" value={audit ? audit.log.length : "—"} tone="ink" sub="chain includes escalations & lab results" />
@@ -152,7 +159,7 @@ export default function AdminScreen() {
         <Stat icon="🚨" iconBg="bg-red-100" label="Active clusters" value={activeClusters} tone={activeClusters > 0 ? "red" : "ink"} sub={`${clusters.filter((c) => c.level === "critical").length} critical in district`} />
       </div>
 
-      {loading && <p className="text-gray-400 text-center py-10">Loading admin console…</p>}
+      {loading && <p className="text-gray-400 text-center py-10">Loading audit console…</p>}
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl p-4 text-sm">
@@ -160,36 +167,28 @@ export default function AdminScreen() {
         </div>
       )}
 
-      {/* District officer watchboard: escalations + audit integrity side-by-side */}
-      <div className="grid gap-5 lg:grid-cols-2 items-start">
+      {audit && (
         <section>
-          <SectionTitle icon="🔺">Case escalation &amp; referral ladder</SectionTitle>
-          <EscalationPanel clusters={clusters} />
-        </section>
-
-        {audit && (
-          <section>
-            <SectionTitle icon="🔐">Audit integrity</SectionTitle>
-            <div
-              className={`rounded-2xl p-4 border ${
-                audit.integrity?.valid
-                  ? "bg-green-50 border-green-200 text-green-800"
-                  : "bg-red-50 border-red-300 text-red-800"
-              }`}
-            >
-              <div className="flex items-center gap-2 font-semibold">
-                <span>{audit.integrity?.valid ? "🟢" : "🔴"}</span>
-                {audit.integrity?.valid
-                  ? "Audit chain intact — no tampering detected"
-                  : `TAMPER DETECTED at entry #${audit.integrity.brokenIndex + 1}`}
-              </div>
-              <p className="text-xs mt-1 opacity-80">
-                SHA-256 hash chain: editing any past entry breaks all subsequent hashes.
-              </p>
+          <SectionTitle icon="🔐">Audit integrity</SectionTitle>
+          <div
+            className={`rounded-2xl p-4 border ${
+              audit.integrity?.valid
+                ? "bg-green-50 border-green-200 text-green-800"
+                : "bg-red-50 border-red-300 text-red-800"
+            }`}
+          >
+            <div className="flex items-center gap-2 font-semibold">
+              <span>{audit.integrity?.valid ? "🟢" : "🔴"}</span>
+              {audit.integrity?.valid
+                ? "Audit chain intact — no tampering detected"
+                : `TAMPER DETECTED at entry #${audit.integrity.brokenIndex + 1}`}
             </div>
-          </section>
-        )}
-      </div>
+            <p className="text-xs mt-1 opacity-80">
+              SHA-256 hash chain: editing any past entry breaks all subsequent hashes.
+            </p>
+          </div>
+        </section>
+      )}
 
         {audit && (
           <>

@@ -40,7 +40,8 @@ import {
 } from "./diseaseModel.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = join(__dirname, "data");
+// Optional DATA_DIR override (tests / ephemeral instances); defaults to server/data.
+const DATA_DIR = process.env.DATA_DIR ? join(process.env.DATA_DIR) : join(__dirname, "data");
 
 // Load server/.env regardless of which directory the server was started from
 // (npm run server runs from the repo root; dotenv/config alone would read a
@@ -1083,6 +1084,65 @@ app.get("/api/audit", authRequired, requireRole("admin"), (req, res) => {
 // ---------- Herd-level health ledger (vaccination / treatment / deworming / mortality) ----------
 const HEALTH_TYPES = new Set(["vaccination", "treatment", "deworming", "mortality"]);
 
+// ---------- Critical-case identified access (admin) ----------
+// Normal admin views are aggregated & de-identified. When government intervention
+// is required on a CRITICAL cluster, the admin may request the MINIMUM necessary
+// identified farm info — but only via an explicit gated action that is recorded
+// in the tamper-evident audit chain (who / when / why), so identity is never
+// casually browsable.
+app.post("/api/admin/critical-access", authRequired, requireRole("admin"), (req, res) => {
+  const { cluster_id, reason } = req.body || {};
+  const cluster = computeAllClusters().find((c) => c.id === cluster_id);
+  if (!cluster) return res.status(404).json({ error: "Cluster not found" });
+  if (cluster.level !== "critical") {
+    return res.status(400).json({ error: "Identified access is only available for CRITICAL clusters" });
+  }
+  const reasonStr = typeof reason === "string" && reason.trim() ? reason.trim().slice(0, NOTES_MAX) : "critical-case intervention";
+  const farmsInCluster = DB.farms.filter((f) => cluster.farms.includes(f.farm_id));
+  const identified = farmsInCluster.map((f) => ({
+    farm_id: f.farm_id,
+    name: f.name,
+    village: f.village,
+    taluka: f.taluka,
+    animal_type: f.animal_type,
+    animal_category: f.animal_category,
+    herd_size: f.herd_size,
+    lat: f.lat,
+    lng: f.lng,
+    fdrs: computeFdrs(f),
+  }));
+  DB.audit = appendAudit(DB.audit, req.user.id, "critical_case_access", {
+    cluster_id: cluster.id,
+    level: cluster.level,
+    village: cluster.village,
+    taluka: cluster.taluka || null,
+    district: cluster.district || null,
+    animal_category: cluster.animal_category,
+    report_count: cluster.report_count,
+    farm_count: cluster.farm_count,
+    reason: reasonStr,
+    farms_accessed: identified.map((f) => f.farm_id),
+  });
+  persist();
+  res.json({
+    notice: "Sensitive farm information. This case is classified as CRITICAL. This access has been recorded in the audit log.",
+    cluster: {
+      id: cluster.id,
+      village: cluster.village,
+      taluka: cluster.taluka,
+      district: cluster.district,
+      level: cluster.level,
+      report_count: cluster.report_count,
+      farm_count: cluster.farm_count,
+      animal_category: cluster.animal_category,
+      zoonotic: cluster.zoonotic,
+      zoonotic_diseases: cluster.zoonotic_diseases,
+    },
+    identifiedFarms: identified,
+    accessedAt: new Date().toISOString(),
+  });
+});
+
 function visibleHealth(user) {
   const vis = new Set(visibleFarms(user).map((f) => f.farm_id));
   return DB.health
@@ -1286,8 +1346,28 @@ app.post("/api/drives", authRequired, requireRole("vet", "admin"), (req, res) =>
   res.status(201).json({ drive, coverage: driveCoverage(drive) });
 });
 
-// Drive list + live coverage. Vet sees their district; admin & farmers see all
-// (campaign information is public, same village surveillance grid).
+// One farmer must never see another farmer's identity. Campaign *aggregates* are
+// public (surveillance grid), but per-farm identity in coverage detail is only
+// for the vet assigned to that jurisdiction. Admin sees de-identified statistics
+// by default (per core privacy rule), never a roll-call of farm names.
+function sanitizeDriveForUser(drive, user) {
+  const coverage = driveCoverage(drive);
+  if (user.role === "vet") {
+    return { ...drive, coverage };
+  }
+  // farmer + admin: keep aggregates, drop identity detail.
+  const keep = { ...coverage };
+  delete keep.still_to_do;
+  if (user.role === "farmer") {
+    // Own farm coverage status must still work, but never leak other farmers.
+    const own = new Set(DB.farms.filter((f) => f.user_id === user.id).map((f) => f.farm_id));
+    keep.covered_farm_ids = (coverage.covered_farm_ids || []).filter((id) => own.has(id));
+  } else {
+    delete keep.covered_farm_ids;
+  }
+  return { ...drive, coverage: keep };
+}
+
 app.get("/api/drives", authRequired, (req, res) => {
   let drives = DB.drives;
   if (req.user.role === "vet") drives = drives.filter((d) => d.district === req.user.district);
@@ -1295,7 +1375,7 @@ app.get("/api/drives", authRequired, (req, res) => {
     drives: drives
       .slice()
       .sort((a, b) => b.created_at - a.created_at)
-      .map((d) => ({ ...d, coverage: driveCoverage(d) })),
+      .map((d) => sanitizeDriveForUser(d, req.user)),
   });
 });
 
@@ -1338,6 +1418,8 @@ const nearestSampleInfo = (s) => {
     lab_name: s.lab_name,
   };
 };
+
+const userNameById = (id) => DB.users.find((u) => u.id === id)?.name || id;
 
 // Vet collects a sample and refers it to the district lab (awaiting_result).
 app.post("/api/samples", authRequired, requireRole("vet", "admin"), (req, res) => {
@@ -1395,13 +1477,44 @@ app.get("/api/samples", authRequired, (req, res) => {
       const f = DB.farms.find((x) => x.farm_id === s.farm_id);
       return !f?.district || f.district === req.user.district;
     });
+    // Lab sees the minimum necessary for testing (case refs, animal + sample info,
+    // referring officer, disease suspicion). Farmer identity is not needed.
     samples = samples.map((s) => {
       const f = DB.farms.find((x) => x.farm_id === s.farm_id);
-      return { ...s, farm_name: f?.name || s.farm_id, village: f?.village || s.village || null, herd_size: f?.herd_size || null };
+      return {
+        id: s.id,
+        case_id: s.case_id || null,
+        farm_id: s.farm_id,
+        farm_name: null,
+        village: f?.village || s.village || null,
+        animal_category: s.animal_category,
+        animal_type: s.animal_type,
+        sample_type: s.sample_type,
+        suspected_disease: s.suspected_disease || null,
+        test_requested: s.test_requested || null,
+        lab_name: s.lab_name,
+        status: s.status,
+        collected_at: s.collected_at,
+        collected_by: s.collected_by,
+        referring_vet: userNameById(s.collected_by),
+        notes: s.notes || null,
+        result: s.result || null,
+        pathogen: s.pathogen || null,
+        remarks: s.remarks || null,
+        resulted_at: s.resulted_at || null,
+        resulted_by: s.resulted_by || null,
+      };
     });
   }
   samples = samples
-    .map((s) => ({ ...s, farm_name: DB.farms.find((f) => f.farm_id === s.farm_id)?.name || s.farm_id }))
+    .map((s) => {
+      const f = DB.farms.find((x) => x.farm_id === s.farm_id);
+      return {
+        ...s,
+        farm_name: s.farm_name !== undefined ? s.farm_name : f?.name || s.farm_id,
+        referring_vet: s.referring_vet || userNameById(s.collected_by),
+      };
+    })
     .sort((a, b) => new Date(b.collected_at) - new Date(a.collected_at));
   res.json({ samples });
 });
@@ -1410,6 +1523,13 @@ app.get("/api/samples", authRequired, (req, res) => {
 app.post("/api/samples/:id/result", authRequired, requireRole("lab", "vet", "admin"), (req, res) => {
   const sample = DB.samples.find((s) => s.id === req.params.id);
   if (!sample) return res.status(404).json({ error: "Sample not found" });
+  // A lab may only result samples referred in its own jurisdiction.
+  if (req.user.role === "lab" && req.user.district) {
+    const farm = DB.farms.find((x) => x.farm_id === sample.farm_id);
+    if (farm?.district && farm.district !== req.user.district) {
+      return res.status(403).json({ error: "Forbidden: sample outside laboratory jurisdiction" });
+    }
+  }
   const { result, pathogen, remarks, test_requested } = req.body || {};
   if (!SAMPLE_RESULTS.includes(result)) {
     return res.status(400).json({ error: "result must be positive or negative" });

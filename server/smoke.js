@@ -27,6 +27,7 @@ async function main() {
   const farmer = await login("9876543210");
   const vet = await login("9123456780");
   const admin = await login("9988776655");
+  const lab = await login("9000000001");
 
   const authHeaders = (t) => ({ Authorization: `Bearer ${t}` });
 
@@ -156,6 +157,55 @@ async function main() {
   });
   const created = await createFarm.json();
   results.push(pass("farmer registers farm", createFarm.status === 201, created.farm?.farm_id));
+
+  // 16. PRIVACY: drives sanitized per role — no other farmer's name visible to a
+  // farmer; admin sees aggregates only; vet (authorized) keeps identity detail.
+  const farmerDrives = await (await fetch(`${BASE}/drives`, { headers: authHeaders(farmer.token) })).json();
+  const adminDrives = await (await fetch(`${BASE}/drives`, { headers: authHeaders(admin.token) })).json();
+  const vetDrives = await (await fetch(`${BASE}/drives`, { headers: authHeaders(vet.token) })).json();
+  const farmerStillToDo = (farmerDrives.drives || []).some((d) => d.coverage?.still_to_do);
+  const adminStillToDo = (adminDrives.drives || []).some((d) => d.coverage?.still_to_do);
+  const vetStillToDo = (vetDrives.drives || []).some((d) => d.coverage?.still_to_do);
+  results.push(pass("farmer drives: no other-farm identity (no still_to_do)", !farmerStillToDo));
+  results.push(pass("admin drives: de-identified (no still_to_do)", !adminStillToDo));
+  results.push(pass("vet drives: authorized identity detail kept", vetStillToDo || (vetDrives.drives || []).length === 0));
+
+  // 17. PRIVACY: lab sample payload has no farm name / herd size, but does carry
+  // the referring vet officer.
+  const labSamples = await (await fetch(`${BASE}/samples`, { headers: authHeaders(lab.token) })).json();
+  const labFarmNames = (labSamples.samples || []).filter((s) => s.farm_name != null).length;
+  const labHerdSizes = (labSamples.samples || []).filter((s) => s.herd_size != null).length;
+  const labReferrers = (labSamples.samples || []).every((s) => typeof s.referring_vet === "string");
+  results.push(pass("lab samples: farm identity hidden (no name/herd_size)", labFarmNames === 0 && labHerdSizes === 0, `names=${labFarmNames} herd=${labHerdSizes}`));
+  results.push(pass("lab samples: referring vet present", labReferrers));
+
+  // 18. PRIVACY: admin critical-case access is gated + audited on a critical cluster.
+  if (critical) {
+    const denied = await fetch(`${BASE}/admin/critical-access`, {
+      method: "POST",
+      headers: { ...authHeaders(vet.token), "Content-Type": "application/json" },
+      body: JSON.stringify({ cluster_id: critical.id, reason: "test" }),
+    });
+    results.push(pass("critical-access denied for vet (admin only)", denied.status === 403));
+
+    const badLevel = await fetch(`${BASE}/admin/critical-access`, {
+      method: "POST",
+      headers: { ...authHeaders(admin.token), "Content-Type": "application/json" },
+      body: JSON.stringify({ cluster_id: (clustersAfter.clusters || []).find((c) => c.level === "emerging")?.id, reason: "test" }),
+    });
+    results.push(pass("critical-access rejected for non-critical cluster", badLevel.status === 400 || badLevel.status === 404));
+
+    const access = await fetch(`${BASE}/admin/critical-access`, {
+      method: "POST",
+      headers: { ...authHeaders(admin.token), "Content-Type": "application/json" },
+      body: JSON.stringify({ cluster_id: critical.id, reason: "government intervention required" }),
+    });
+    const accessData = await access.json();
+    results.push(pass("admin critical-access returns identified farms", access.status === 200 && Array.isArray(accessData.identifiedFarms) && accessData.identifiedFarms.length > 0));
+    const auditAfterAccess = await (await fetch(`${BASE}/audit`, { headers: authHeaders(admin.token) })).json();
+    const hasAccessEntry = (auditAfterAccess.log || []).some((e) => e.action === "critical_case_access" && e.data?.cluster_id === critical.id && e.data?.reason === "government intervention required");
+    results.push(pass("critical-case access recorded in audit chain (who/when/why)", hasAccessEntry));
+  }
 
   const passed = results.filter((r) => r).length;
   const failed = results.length - passed;

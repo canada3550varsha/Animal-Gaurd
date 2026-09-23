@@ -76,6 +76,32 @@ export const DRUG_CATALOG = [
   "ORS (Oral Rehydration Salts)",
 ];
 
+// Veterinary case workflow status language. Derived from live cluster state +
+// whether the office has responded (dispatched / sample referred / result in).
+export const CASE_FLOW_STATUS = {
+  NEW: { label: "NEW", cls: "bg-blue-600 text-white", icon: "🆕" },
+  UNDER_REVIEW: { label: "UNDER REVIEW", cls: "bg-indigo-600 text-white", icon: "🔎" },
+  VISIT_REQUIRED: { label: "VISIT REQUIRED", cls: "bg-red-600 text-white", icon: "🏥" },
+  SAMPLE_COLLECTED: { label: "SAMPLE COLLECTED", cls: "bg-amber-500 text-white", icon: "🧪" },
+  LAB_PENDING: { label: "LAB PENDING", cls: "bg-orange-500 text-white", icon: "🔬" },
+  RESULT_AVAILABLE: { label: "RESULT AVAILABLE", cls: "bg-purple-600 text-white", icon: "📋" },
+  ACTION_REQUIRED: { label: "ACTION REQUIRED", cls: "bg-rose-600 text-white", icon: "🚨" },
+  RESOLVED: { label: "RESOLVED", cls: "bg-green-600 text-white", icon: "✅" },
+};
+
+// Map a cluster + response context to one of the 8 workflow states.
+// ctx: { dispatched: bool, resolved: bool, sample: { status } | null }
+export function caseFlowStatus(cluster, ctx = {}) {
+  if (ctx.resolved) return CASE_FLOW_STATUS.RESOLVED;
+  if (ctx.sample?.status === "resulted") return CASE_FLOW_STATUS.RESULT_AVAILABLE;
+  if (ctx.sample?.status === "awaiting_result") return CASE_FLOW_STATUS.LAB_PENDING;
+  if (ctx.sample) return CASE_FLOW_STATUS.SAMPLE_COLLECTED;
+  if (ctx.dispatched && cluster.level === "critical") return CASE_FLOW_STATUS.VISIT_REQUIRED;
+  if (ctx.dispatched) return CASE_FLOW_STATUS.UNDER_REVIEW;
+  if (cluster.level === "critical") return CASE_FLOW_STATUS.ACTION_REQUIRED;
+  return CASE_FLOW_STATUS.NEW;
+}
+
 export const DISEASE_CATALOG = [
   "Foot and Mouth Disease",
   "Lumpy Skin Disease",
