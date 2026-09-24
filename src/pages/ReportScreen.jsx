@@ -5,11 +5,12 @@ import { SYMPTOMS, ANIMAL_ICONS } from "../data/constants.js";
 import AppShell from "../components/ui/AppShell.jsx";
 import VoiceReportFlow from "../components/VoiceReportFlow.jsx";
 import { reqError } from "../api/client.js";
+import { T } from "../data/i18n.js";
 
 // ONE reporting workflow: pick a farm (player's own), then report by manual form
 // or no-typing voice. Voice is a mode inside this page — not a separate page.
 export default function ReportScreen() {
-  const { farms, addReport } = useApp();
+  const { farms, addReport, lang } = useApp();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -91,7 +92,7 @@ export default function ReportScreen() {
   };
 
   return (
-    <AppShell title="Report Symptoms" subtitle="One reporting workflow — manual, voice or photo">
+    <AppShell title={T(lang, "Report Symptoms")} subtitle={T(lang, "One reporting workflow — manual, voice or photo")}>
       <div className="mx-auto max-w-3xl space-y-5">
         {/* Mode toggle */}
         <div className="grid grid-cols-2 gap-2 bg-gray-100 rounded-2xl p-1.5">
@@ -101,7 +102,7 @@ export default function ReportScreen() {
               mode === "manual" ? "bg-white shadow-sm text-ink" : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            ✍️ Manual Report
+            ✍️ {T(lang, "Manual Report")}
           </button>
           <button
             onClick={() => setMode("voice")}
@@ -109,14 +110,14 @@ export default function ReportScreen() {
               mode === "voice" ? "bg-white shadow-sm text-ink" : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            🎤 No-Typing Voice
+            🎤 {T(lang, "No-Typing Voice")}
           </button>
         </div>
 
         {/* Farm picker (only the farmer's own farms) */}
         {!farm && (
           <div>
-            <p className="text-sm font-semibold text-gray-600 mb-2">Select your farm</p>
+            <p className="text-sm font-semibold text-gray-600 mb-2">{T(lang, "Select your farm")}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {farms.map((f) => (
                 <button

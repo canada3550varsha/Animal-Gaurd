@@ -33,6 +33,16 @@ export function AppProvider({ children }) {
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
   const [envData, setEnvData] = useState({});
   const [envLoading, setEnvLoading] = useState({});
+  const [lang, setLangState] = useState(() => localStorage.getItem("ag_lang") || "en");
+
+  const setLang = useCallback((next) => {
+    setLangState(next);
+    try {
+      localStorage.setItem("ag_lang", next);
+    } catch {
+      /* storage unavailable */
+    }
+  }, []);
 
   // Restore session from token on mount.
   useEffect(() => {
@@ -335,6 +345,8 @@ export function AppProvider({ children }) {
         fetchEnvFor,
         lastSyncedAt,
         getFDRS,
+        lang,
+        setLang,
       }}
     >
       {children}

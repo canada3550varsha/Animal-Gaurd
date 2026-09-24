@@ -5,6 +5,7 @@ import ZoonoticBadge from "../components/ZoonoticBadge.jsx";
 import { useApp } from "../context/AppContext.jsx";
 import { CATEGORY_LABELS, ANIMAL_ICONS, SYMPTOMS } from "../data/constants.js";
 import { fmtTime } from "../data/format.js";
+import { T } from "../data/i18n.js";
 
 const SYMPTOM_LABEL = Object.fromEntries(
   Object.values(SYMPTOMS)
@@ -13,7 +14,7 @@ const SYMPTOM_LABEL = Object.fromEntries(
 );
 
 export default function MyReportsScreen() {
-  const { reports, farms } = useApp();
+  const { reports, farms, lang } = useApp();
   const farmById = new Map(farms.map((f) => [f.farm_id, f]));
 
   const ordered = reports
@@ -28,7 +29,7 @@ export default function MyReportsScreen() {
   const affected = reports.reduce((s, r) => s + (Number(r.affected_count) || 0), 0);
 
   return (
-    <AppShell title="My Reports" subtitle="Everything reported from your farms">
+    <AppShell title={T(lang, "My Reports")} subtitle={T(lang, "Everything reported from your farms")}>
       <div className="space-y-6">
         <PrivacyNotice role="farmer" />
 

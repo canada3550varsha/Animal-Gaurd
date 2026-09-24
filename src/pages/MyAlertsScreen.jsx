@@ -1,14 +1,13 @@
-import { useState } from "react";
 import AppShell from "../components/ui/AppShell.jsx";
 import PrivacyNotice from "../components/ui/PrivacyNotice.jsx";
 import { Stat, SectionTitle, EmptyState } from "../components/ui/primitives.jsx";
 import ZoonoticBadge from "../components/ZoonoticBadge.jsx";
 import { useApp } from "../context/AppContext.jsx";
 import { fmtTime } from "../data/format.js";
+import { T } from "../data/i18n.js";
 
 export default function MyAlertsScreen() {
-  const { clusters, criticalClusters, inbox, farms } = useApp();
-  const [lang, setLang] = useState("en");
+  const { clusters, criticalClusters, inbox, farms, lang } = useApp();
 
   const active = clusters
     .filter((c) => c.level === "critical" || c.level === "emerging")
@@ -19,21 +18,21 @@ export default function MyAlertsScreen() {
   const unread = messages.filter((m) => !m.read).length;
 
   return (
-    <AppShell title="My Alerts" subtitle="Outbreak & response messages for your farms">
+    <AppShell title={T(lang, "My Alerts")} subtitle={T(lang, "Outbreak & response messages for your farms")}>
       <div className="space-y-6">
         <PrivacyNotice role="farmer" />
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Stat icon="🔔" iconBg="bg-amber-100" label="Messages" value={messages.length} tone="ink" sub={`${unread} unread`} />
-          <Stat icon="🚨" iconBg="bg-red-100" label="Active alerts" value={active.length} tone={active.length > 0 ? "red" : "ink"} sub="critical + emerging nearby" />
-          <Stat icon="🆘" iconBg="bg-rose-100" label="Critical" value={criticalClusters.length} tone={criticalClusters.length > 0 ? "red" : "ink"} sub="requires urgent action" />
+          <Stat icon="🔔" iconBg="bg-amber-100" label={T(lang, "Messages")} value={messages.length} tone="ink" sub={`${unread} ${T(lang, "unread")}`} />
+          <Stat icon="🚨" iconBg="bg-red-100" label={T(lang, "Active alerts")} value={active.length} tone={active.length > 0 ? "red" : "ink"} sub={T(lang, "critical + emerging nearby")} />
+          <Stat icon="🆘" iconBg="bg-rose-100" label={T(lang, "Critical")} value={criticalClusters.length} tone={criticalClusters.length > 0 ? "red" : "ink"} sub={T(lang, "requires urgent action")} />
         </div>
 
         {/* Alerts affecting the farmer's own farms */}
         <section>
-          <SectionTitle icon="🚨">Outbreak alerts for your area</SectionTitle>
+          <SectionTitle icon="🚨">{T(lang, "Outbreak alerts for your area")}</SectionTitle>
           {active.length === 0 ? (
-            <EmptyState icon="✅" title="No active alerts" sub="All reports in your area are within normal parameters." />
+            <EmptyState icon="✅" title={T(lang, "No active alerts")} sub={T(lang, "All reports in your area are within normal parameters.")} />
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {active.map((c) => (
@@ -63,29 +62,11 @@ export default function MyAlertsScreen() {
 
         {/* Messages addressed to the farmer */}
         <section>
-          <SectionTitle icon="📥">Messages &amp; advisories</SectionTitle>
+          <SectionTitle icon="📥">{T(lang, "Messages & advisories")}</SectionTitle>
           {messages.length === 0 ? (
-            <EmptyState icon="📭" title="No messages" sub="Vet dispatches and advisories for your farms will appear here." />
+            <EmptyState icon="📭" title={T(lang, "No messages")} sub={T(lang, "Vet dispatches and advisories for your farms will appear here.")} />
           ) : (
             <>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-xs text-gray-400">Language:</span>
-                {[
-                  { code: "en", label: "English" },
-                  { code: "mr", label: "मराठी" },
-                  { code: "hi", label: "हिंदी" },
-                ].map((l) => (
-                  <button
-                    key={l.code}
-                    onClick={() => setLang(l.code)}
-                    className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
-                      lang === l.code ? "bg-primary text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    }`}
-                  >
-                    {l.label}
-                  </button>
-                ))}
-              </div>
               <div className="space-y-2">
                 {messages.map((m) => {
                   const farm = farms.find((f) => f.farm_id === m.farm_id);

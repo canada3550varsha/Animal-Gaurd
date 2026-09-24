@@ -3,6 +3,7 @@ import AppShell from "../components/ui/AppShell.jsx";
 import PrivacyNotice from "../components/ui/PrivacyNotice.jsx";
 import { Card, SectionTitle } from "../components/ui/primitives.jsx";
 import { useApp } from "../context/AppContext.jsx";
+import { T } from "../data/i18n.js";
 
 const ROLE_LABEL = {
   farmer: "Livestock Owner",
@@ -13,7 +14,7 @@ const ROLE_LABEL = {
 
 export default function ProfileScreen() {
   const navigate = useNavigate();
-  const { user, farms } = useApp();
+  const { user, farms, lang } = useApp();
   const role = user?.role || "farmer";
 
   const initials = (user?.name || "U")
@@ -24,7 +25,7 @@ export default function ProfileScreen() {
     .toUpperCase();
 
   return (
-    <AppShell title="My Profile" subtitle="Account & privacy">
+    <AppShell title={T(lang, "My Profile")} subtitle={T(lang, "Account & privacy")}>
       <div className="space-y-6 max-w-2xl">
         <PrivacyNotice role={role} />
 
@@ -35,7 +36,7 @@ export default function ProfileScreen() {
             </span>
             <div>
               <p className="text-xl font-bold text-ink">{user?.name}</p>
-              <p className="text-sm text-gray-500">{ROLE_LABEL[role] || role}</p>
+              <p className="text-sm text-gray-500">{T(lang, ROLE_LABEL[role] || role)}</p>
             </div>
           </div>
 

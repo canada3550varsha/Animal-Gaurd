@@ -5,12 +5,13 @@ import { fdrsBand } from "../api/agro.js";
 import AppShell from "../components/ui/AppShell.jsx";
 import PrivacyNotice from "../components/ui/PrivacyNotice.jsx";
 import { Stat, SectionTitle, EmptyState } from "../components/ui/primitives.jsx";
+import { T } from "../data/i18n.js";
 
 // My Farm — ONLY the farms belonging to the currently authenticated farmer.
 // The server scopes GET /api/farms to the owner; this page renders whatever
 // that role-filtered list returns (never other farmers' farms).
 export default function MyFarmScreen() {
-  const { user, getUserFarms, getFDRS, getLatestReading } = useApp();
+  const { user, getUserFarms, getFDRS, getLatestReading, lang } = useApp();
   const navigate = useNavigate();
   const farms = getUserFarms();
 
@@ -18,7 +19,7 @@ export default function MyFarmScreen() {
   const poultryCount = farms.filter((f) => f.animal_category === "poultry").length;
 
   return (
-    <AppShell title="My Farm" subtitle={`Registered by ${user?.name}`}>
+    <AppShell title={T(lang, "My Farm")} subtitle={`Registered by ${user?.name}`}>
       <div className="space-y-6">
         <PrivacyNotice role="farmer" />
 
@@ -39,21 +40,21 @@ export default function MyFarmScreen() {
             icon="🏡"
             right={
               <button onClick={() => navigate("/register-farm")} className="btn-primary px-4 py-2 text-sm">
-                ➕ Register Farm
+                ➕ {T(lang, "Register Farm")}
               </button>
             }
           >
-            My farms ({farms.length})
+            {T(lang, "My farms")} ({farms.length})
           </SectionTitle>
 
           {farms.length === 0 ? (
             <EmptyState
               icon="🏡"
-              title="No farms registered yet"
+              title={T(lang, "No farms registered yet")}
               sub="Register your farm to start tracking its health and disease risk."
               action={
                 <button onClick={() => navigate("/register-farm")} className="btn-primary px-5 py-2.5">
-                  ➕ Register Farm
+                  ➕ {T(lang, "Register Farm")}
                 </button>
               }
             />

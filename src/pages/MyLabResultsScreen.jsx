@@ -6,9 +6,10 @@ import { api, getToken } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import { SAMPLE_TYPE_LABEL, SAMPLE_RESULT_LABEL, SAMPLE_STATUS_LABEL } from "../data/health.js";
 import { fmtDate } from "../data/format.js";
+import { T } from "../data/i18n.js";
 
 export default function MyLabResultsScreen() {
-  const { farms } = useApp();
+  const { farms, lang } = useApp();
   const [samples, setSamples] = useState([]);
 
   useEffect(() => {
@@ -30,7 +31,7 @@ export default function MyLabResultsScreen() {
   const farmById = new Map(farms.map((f) => [f.farm_id, f]));
 
   return (
-    <AppShell title="Lab Results" subtitle="Sample & test results for your herds">
+    <AppShell title={T(lang, "Lab Results")} subtitle={T(lang, "Sample & test results for your herds")}>
       <div className="space-y-6">
         <PrivacyNotice role="farmer" />
 

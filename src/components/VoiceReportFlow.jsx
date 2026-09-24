@@ -83,10 +83,10 @@ function locateFarm() {
 // `urlFarmId` pre-sets the farm and skips the farm-selection step.
 export default function VoiceReportFlow({ urlFarmId = "", onSubmitted }) {
   const navigate = useNavigate();
-  const { farms, addReport, addFarm } = useApp();
+  const { farms, addReport, addFarm, lang: appLang, setLang: setAppLang } = useApp();
 
   const [farmId, setFarmId] = useState(urlFarmId || "");
-  const [lang, setLang] = useState("en");
+  const [lang, setLang] = useState(appLang || "en");
   const [stepIdx, setStepIdx] = useState(0);
   const [busyFarm, setBusyFarm] = useState(false);
 
@@ -532,6 +532,7 @@ export default function VoiceReportFlow({ urlFarmId = "", onSubmitted }) {
                   key={l.code}
                   onClick={() => {
                     setLang(l.code);
+                    if (setAppLang) setAppLang(l.code);
                     const from = STEPS.indexOf("lang");
                     let nxt = from + 1;
                     if (urlFarmId && STEPS[nxt] === "farm") nxt += 1;

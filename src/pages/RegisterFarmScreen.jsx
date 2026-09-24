@@ -5,6 +5,7 @@ import { DISTRICTS } from "../data/constants.js";
 import FarmMap from "../components/FarmMap.jsx";
 import Page from "../components/ui/Page.jsx";
 import { reqError } from "../api/client.js";
+import { T } from "../data/i18n.js";
 
 const STEPS = {
   CATEGORY: 0,
@@ -15,7 +16,7 @@ const STEPS = {
 };
 
 export default function RegisterFarmScreen() {
-  const { addFarm } = useApp();
+  const { addFarm, lang } = useApp();
   const navigate = useNavigate();
 
   const [step, setStep] = useState(STEPS.CATEGORY);
@@ -122,7 +123,7 @@ export default function RegisterFarmScreen() {
   };
 
   return (
-    <Page title="Register New Farm" onBack={() => (step > 0 ? setStep(step - 1) : navigate("/"))} maxW="max-w-lg">
+    <Page title={T(lang, "Register New Farm")} onBack={() => (step > 0 ? setStep(step - 1) : navigate("/"))} maxW="max-w-lg">
         {/* Step Indicator */}
         <div className="flex gap-1 mb-6">
           {Object.keys(STEPS).map((_, i) => (

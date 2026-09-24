@@ -7,11 +7,12 @@ import AppShell from "../components/ui/AppShell.jsx";
 import PrivacyNotice from "../components/ui/PrivacyNotice.jsx";
 import { Stat, SectionTitle } from "../components/ui/primitives.jsx";
 import { api, getToken } from "../api/client.js";
+import { T } from "../data/i18n.js";
 
 // Summary-only dashboard. It never renders a full page's content — each section
 // is a compact glance (or single latest item) that links to the real page.
 export default function HomeScreen() {
-  const { user, getUserFarms, getFDRS, reports, getFarmInbox, sensing } = useApp();
+  const { user, getUserFarms, getFDRS, reports, getFarmInbox, sensing, lang } = useApp();
   const navigate = useNavigate();
   const farms = getUserFarms();
   const [health, setHealth] = useState([]);
@@ -54,16 +55,16 @@ export default function HomeScreen() {
     (SYMPTOMS[farm.animal_category] || []).find((s) => s.id === id)?.label || id;
 
   return (
-    <AppShell title="My Dashboard" subtitle={`Welcome, ${user?.name}`}>
+    <AppShell title={T(lang, "My Dashboard")} subtitle={`${T(lang, "Welcome, ")}${user?.name}`}>
       <div className="space-y-6">
         <PrivacyNotice role="farmer" />
 
         {/* Summary stats — own data only */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Stat icon="🏡" iconBg="bg-green-100" label="My farms" value={farms.length} tone="ink" sub={`${livestockCount} livestock · ${poultryCount} poultry`} />
-          <Stat icon="🩺" iconBg="bg-blue-100" label="Reports (7d)" value={reports7} tone="blue" sub="submitted by you" />
-          <Stat icon="💉" iconBg="bg-indigo-100" label="Health records" value={health.length} tone="ink" sub="vaccinations · treatments · deworming" />
-          <Stat icon="🔔" iconBg="bg-amber-100" label="Unread alerts" value={unread} tone={unread > 0 ? "red" : "ink"} sub="messages for your farms" />
+          <Stat icon="🏡" iconBg="bg-green-100" label={T(lang, "My farms")} value={farms.length} tone="ink" sub={`${livestockCount} livestock · ${poultryCount} poultry`} />
+          <Stat icon="🩺" iconBg="bg-blue-100" label={T(lang, "Reports (7d)")} value={reports7} tone="blue" sub={T(lang, "submitted by you")} />
+          <Stat icon="💉" iconBg="bg-indigo-100" label={T(lang, "Health records")} value={health.length} tone="ink" sub={T(lang, "vaccinations · treatments · deworming")} />
+          <Stat icon="🔔" iconBg="bg-amber-100" label={T(lang, "Unread alerts")} value={unread} tone={unread > 0 ? "red" : "ink"} sub={T(lang, "messages for your farms")} />
         </div>
 
         {/* My farms — compact glance, click through to the full farm */}
@@ -72,17 +73,17 @@ export default function HomeScreen() {
             icon="🏡"
             right={
               <button onClick={() => navigate("/my-farm")} className="text-xs font-semibold text-primary hover:underline">
-                Open My Farm →
+                {T(lang, "Open My Farm →")}
               </button>
             }
           >
-            My farms
+            {T(lang, "My farms")}
           </SectionTitle>
           {farms.length === 0 ? (
             <div className="bg-white border border-gray-100 rounded-2xl p-6 text-center">
-              <p className="text-sm text-gray-500">No farms registered yet.</p>
+              <p className="text-sm text-gray-500">{T(lang, "No farms registered yet.")}</p>
               <button onClick={() => navigate("/register-farm")} className="mt-3 btn-primary px-4 py-2">
-                Register Farm
+                {T(lang, "Register Farm")}
               </button>
             </div>
           ) : (
@@ -115,7 +116,7 @@ export default function HomeScreen() {
 
         {/* Latest highlights — one item each, full lists live on their own pages */}
         <section>
-          <SectionTitle icon="⚡">Latest</SectionTitle>
+          <SectionTitle icon="⚡">{T(lang, "Latest")}</SectionTitle>
           <div className="grid gap-3 sm:grid-cols-2">
             {/* Latest report */}
             <button
@@ -123,7 +124,7 @@ export default function HomeScreen() {
               className="w-full text-left bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-md transition-shadow"
             >
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold text-gray-400 uppercase">Latest report</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase">{T(lang, "Latest report")}</p>
                 <span
                   className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
                     latestReport?.ai_screened === true
@@ -148,10 +149,10 @@ export default function HomeScreen() {
                     {latestReportFarm?.name || `Farm ${latestReport.farm_id.slice(-4)}`} —{" "}
                     {(latestReport.symptoms || []).map((id) => symptomLabel(latestReportFarm || {}, id)).slice(0, 3).join(", ")}
                   </p>
-                  <p className="text-[11px] text-gray-400 mt-1">View all reports in My Reports →</p>
+                  <p className="text-[11px] text-gray-400 mt-1">{T(lang, "View all reports in My Reports →")}</p>
                 </>
               ) : (
-                <p className="text-sm text-gray-500 mt-1">No reports yet.</p>
+                <p className="text-sm text-gray-500 mt-1">{T(lang, "No reports yet.")}</p>
               )}
             </button>
 
@@ -161,7 +162,7 @@ export default function HomeScreen() {
               className="w-full text-left bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-md transition-shadow"
             >
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold text-gray-400 uppercase">Latest alert</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase">{T(lang, "Latest alert")}</p>
                 {latestMessage && !latestMessage.read && (
                   <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500 text-white font-bold">NEW</span>
                 )}
@@ -172,10 +173,10 @@ export default function HomeScreen() {
                     {latestMessage.type === "vet" ? "🐮 Vet Dispatch" : latestMessage.type === "advisory" ? "📢 Advisory" : "🔔 Update"}
                   </p>
                   <p className="text-xs text-gray-600 mt-0.5 truncate">{latestMessage.en}</p>
-                  <p className="text-[11px] text-gray-400 mt-1">View all alerts in My Alerts →</p>
+                  <p className="text-[11px] text-gray-400 mt-1">{T(lang, "View all alerts in My Alerts →")}</p>
                 </>
               ) : (
-                <p className="text-sm text-gray-500 mt-1">No alerts yet.</p>
+                <p className="text-sm text-gray-500 mt-1">{T(lang, "No alerts yet.")}</p>
               )}
             </button>
           </div>
@@ -184,7 +185,7 @@ export default function HomeScreen() {
         {/* Sensing — summary line only; full readings live inside farm detail */}
         {farms.length > 0 && (
           <section>
-            <SectionTitle icon="📡">Live sensing</SectionTitle>
+            <SectionTitle icon="📡">{T(lang, "Live sensing")}</SectionTitle>
             <button
               onClick={() => navigate("/my-farm")}
               className="w-full text-left flex items-center gap-3 bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-md transition-shadow"
@@ -194,9 +195,9 @@ export default function HomeScreen() {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold text-gray-900">
-                  {liveCount} of {farms.length} farm{farms.length === 1 ? "" : "s"} streaming live sensing
+                  {liveCount} {T(lang, "of")} {farms.length} farm{farms.length === 1 ? "" : "s"} {T(lang, "farms streaming live sensing")}
                 </span>
-                <span className="block text-[11px] text-gray-400">Open a farm in My Farm to view its readings</span>
+                <span className="block text-[11px] text-gray-400">{T(lang, "Open a farm in My Farm to view its readings")}</span>
               </span>
             </button>
           </section>

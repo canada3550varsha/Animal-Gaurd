@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useApp } from "../../context/AppContext.jsx";
+import { T, LANGUAGES } from "../../data/i18n.js";
 
 const ROLE_LABEL = {
   farmer: "Livestock Owner",
@@ -33,16 +34,11 @@ const NAV = {
       items: [
         { to: "/report", icon: "🩺", label: "Report Symptoms" },
         { to: "/my-reports", icon: "📄", label: "My Reports" },
-        { to: "/health-records", icon: "💉", label: "Health Records" },
       ],
     },
     {
       label: "Prevention & Care",
       items: [{ to: "/my-lab", icon: "🧪", label: "Lab Results" }],
-    },
-    {
-      label: "Alerts",
-      items: [{ to: "/my-alerts", icon: "🔔", label: "My Alerts" }],
     },
     {
       label: "Account",
@@ -140,7 +136,7 @@ function NavButton({ item, collapsed, onNavigate }) {
 }
 
 export default function AppShell({ title, subtitle, actions, children }) {
-  const { user, role, inbox, lastSyncedAt } = useApp();
+  const { user, role, inbox, lastSyncedAt, lang, setLang } = useApp();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [drawer, setDrawer] = useState(false);
@@ -169,7 +165,7 @@ export default function AppShell({ title, subtitle, actions, children }) {
         {!collapsed && (
           <div className="min-w-0">
             <p className="font-bold text-white leading-tight truncate">AnimalGuard</p>
-            <p className="text-[10px] text-slate-400 truncate">Livestock · Poultry surveillance</p>
+            <p className="text-[10px] text-slate-400 truncate">{T(lang, "Livestock · Poultry surveillance")}</p>
           </div>
         )}
       </div>
@@ -178,11 +174,11 @@ export default function AppShell({ title, subtitle, actions, children }) {
         {groups.map((group, gi) => (
           <div key={group.label} className={gi > 0 ? "mt-4" : ""}>
             {!collapsed && (
-              <p className="px-3 pb-1 text-[10px] uppercase tracking-widest text-slate-500">{group.label}</p>
+              <p className="px-3 pb-1 text-[10px] uppercase tracking-widest text-slate-500">{T(lang, group.label)}</p>
             )}
             <div className="space-y-1">
               {group.items.map((item) => (
-                <NavButton key={item.to + item.label} item={item} collapsed={collapsed} onNavigate={goTo} />
+                <NavButton key={item.to + item.label} item={{ ...item, label: T(lang, item.label) }} collapsed={collapsed} onNavigate={goTo} />
               ))}
             </div>
           </div>
@@ -190,11 +186,11 @@ export default function AppShell({ title, subtitle, actions, children }) {
 
         <div className="mt-4 border-t border-white/10 pt-3">
           {!collapsed && (
-            <p className="px-3 pb-1 text-[10px] uppercase tracking-widest text-slate-500">Demo / Information</p>
+            <p className="px-3 pb-1 text-[10px] uppercase tracking-widest text-slate-500">{T(lang, "Demo / Information")}</p>
           )}
           <div className="space-y-1">
             {DEMO_INFO.map((item) => (
-              <NavButton key={item.to} item={item} collapsed={collapsed} onNavigate={goTo} />
+              <NavButton key={item.to} item={{ ...item, label: T(lang, item.label) }} collapsed={collapsed} onNavigate={goTo} />
             ))}
           </div>
         </div>
@@ -202,7 +198,7 @@ export default function AppShell({ title, subtitle, actions, children }) {
 
       <div className="p-3 border-t border-white/10 space-y-1">
         <NavButton
-          item={{ to: "/", icon: "🔄", label: "Switch Role" }}
+          item={{ to: "/", icon: "🔄", label: T(lang, "Switch Role") }}
           collapsed={collapsed}
           onNavigate={goTo}
         />
@@ -260,6 +256,22 @@ export default function AppShell({ title, subtitle, actions, children }) {
 
             {actions}
 
+            {/* App-wide language selector */}
+            <div className="flex items-center rounded-full border border-gray-200 bg-white p-0.5">
+              {LANGUAGES.map((l) => (
+                <button
+                  key={l.code}
+                  onClick={() => setLang(l.code)}
+                  className={`px-2 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+                    lang === l.code ? "bg-primary text-white" : "text-gray-500 hover:bg-gray-100"
+                  }`}
+                  title={l.label}
+                >
+                  {lang === l.code ? l.label : l.code === "hi" ? "हिं" : l.code === "mr" ? "मरा" : "En"}
+                </button>
+              ))}
+            </div>
+
             {/* Notifications */}
             <button
               onClick={() => goTo(bellTarget)}
@@ -296,7 +308,7 @@ export default function AppShell({ title, subtitle, actions, children }) {
               </span>
               <span className="text-left leading-tight">
                 <span className="block text-xs font-semibold text-ink-soft">{user?.name}</span>
-                <span className="block text-[10px] text-gray-400">{ROLE_LABEL[role] || role}</span>
+                <span className="block text-[10px] text-gray-400">{T(lang, ROLE_LABEL[role] || role)}</span>
               </span>
             </button>
           </div>

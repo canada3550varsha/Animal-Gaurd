@@ -8,9 +8,10 @@ import { useApp } from "../context/AppContext.jsx";
 import { ANIMAL_ICONS } from "../data/constants.js";
 import { healthIcon, healthLabel } from "../data/health.js";
 import { fmtShortDate } from "../data/format.js";
+import { T } from "../data/i18n.js";
 
 export default function HealthRecordsScreen() {
-  const { farms } = useApp();
+  const { farms, lang } = useApp();
   const [records, setRecords] = useState([]);
   const [searchParams] = useSearchParams();
   const tab = searchParams.get("tab") || "all";
@@ -43,7 +44,7 @@ export default function HealthRecordsScreen() {
   const totalTx = (records || []).filter((r) => r.record_type === "treatment" || r.record_type === "deworming").length;
 
   return (
-    <AppShell title="Health Records" subtitle="Vaccinations · treatments · deworming · mortality on your herds">
+    <AppShell title={T(lang, "Health Records")} subtitle={T(lang, "Vaccinations · treatments · deworming · mortality on your herds")}>
       <div className="space-y-6">
         <PrivacyNotice role="farmer" />
 
