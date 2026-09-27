@@ -84,7 +84,7 @@ export default function HealthRecordsScreen() {
             {byFarm.map(({ farm, recs, counts }) => (
               <section key={farm.farm_id}>
                 <SectionTitle icon={ANIMAL_ICONS[farm.animal_category]?.[farm.animal_type] || "🏡"}>
-                  {farm.name}
+                  {T(lang, farm.name)}
                   <span className="ml-2 text-xs font-normal text-gray-400 normal-case">
                     {counts.vaccination} 💉 · {counts.treatment} 💊 · {counts.deworming} 🌰 · {counts.mortality} ⚰️
                   </span>

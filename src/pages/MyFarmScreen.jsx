@@ -75,12 +75,12 @@ export default function MyFarmScreen() {
                       <div className="flex items-start gap-3 min-w-0">
                         <span className="text-3xl">{icon}</span>
                         <div className="min-w-0">
-                          <h3 className="font-semibold text-gray-900 truncate">{farm.name}</h3>
+                          <h3 className="font-semibold text-gray-900 truncate">{T(lang, farm.name)}</h3>
                           <p className="text-sm text-gray-500">
                             {farm.herd_size} {T(lang, farm.animal_type)} · {T(lang, CATEGORY_LABELS[farm.animal_category])}
                           </p>
                           <p className="text-xs text-gray-400 mt-0.5">
-                            📍 {farm.village}, {farm.taluka}, {farm.district}
+                            📍 {T(lang, farm.village)}, {T(lang, farm.taluka)}, {T(lang, farm.district)}
                           </p>
                         </div>
                       </div>

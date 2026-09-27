@@ -1,7 +1,7 @@
 import { Fragment, useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useApp } from "../context/AppContext.jsx";
-import { MapContainer, TileLayer, Marker, Polygon, Circle, CircleMarker } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Polygon, Circle, CircleMarker, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { CATEGORY_LABELS, ANIMAL_ICONS, SYMPTOMS } from "../data/constants.js";
@@ -169,7 +169,7 @@ export default function FarmDetailScreen() {
   );
 
   return (
-    <AppShell title={farm.name} subtitle={`${farm.animal_type} · ${farm.village}, ${farm.taluka}`}>
+    <AppShell title={T(lang, farm.name)} subtitle={`${T(lang, farm.animal_type)} · ${T(lang, farm.village)}, ${T(lang, farm.taluka)}`}>
       <div className="space-y-5">
         <PrivacyNotice role={role} />
 
@@ -270,7 +270,7 @@ function OverviewTab({ farm, categoryIcon, fdrs, band, envRisk, envFetchedAt, la
         <div className="flex items-center gap-3">
           <span className="text-4xl">{categoryIcon}</span>
           <div className="flex-1">
-            <h2 className="font-bold text-xl">{farm.name}</h2>
+            <h2 className="font-bold text-xl">{T(lang, farm.name)}</h2>
             <p className="text-sm text-gray-500">{T(lang, CATEGORY_LABELS[farm.animal_category])}</p>
           </div>
           <span className={`px-3 py-1 rounded-full text-xs font-medium ${band.bg} ${band.text}`}>
@@ -281,8 +281,8 @@ function OverviewTab({ farm, categoryIcon, fdrs, band, envRisk, envFetchedAt, la
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm mt-5">
           <InfoItem label={T(lang, "Animal Type")} value={farm.animal_type.charAt(0).toUpperCase() + farm.animal_type.slice(1)} />
           <InfoItem label={T(lang, "Herd Size")} value={`${farm.herd_size}`} />
-          <InfoItem label={T(lang, "Village")} value={farm.village} />
-          <InfoItem label={T(lang, "District")} value={farm.district} />
+          <InfoItem label={T(lang, "Village")} value={T(lang, farm.village)} />
+          <InfoItem label={T(lang, "District")} value={T(lang, farm.district)} />
         </div>
 
         <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -305,7 +305,7 @@ function OverviewTab({ farm, categoryIcon, fdrs, band, envRisk, envFetchedAt, la
         <Card title={T(lang, "Current risk — at a glance")}>
           <div className="space-y-3">
             <BarRow label={T(lang, "Reported Cases")} value={fdrs?.reportedCases ?? 0} max={35} note={T(lang, "Phase 3")} />
-            <BarRow label={T(lang, "Historical Risk")} value={fdrs?.historical ?? historicalRiskFor(farm.taluka)} max={20} note={farm.taluka} />
+            <BarRow label={T(lang, "Historical Risk")} value={fdrs?.historical ?? historicalRiskFor(farm.taluka)} max={20} note={T(lang, farm.taluka)} />
             <BarRow label={T(lang, "Environmental Risk")} value={envRisk ?? "--"} max={25} note={envRisk == null ? T(lang, "no live signal") : T(lang, "live soil/remote sensing")} />
             <BarRow label={T(lang, "Nearby Outbreak")} value={fdrs?.nearby ?? 0} max={20} note={fdrs?.ringInfo ? `${fdrs.ringInfo.dist.toFixed(1)}${T(lang, "km from cluster")}` : T(lang, "ring-based")} />
           </div>
@@ -331,7 +331,7 @@ function RiskTab({ farm, fdrs, band, envRisk, envEntry, envLive, envSource, envF
         </div>
         <div className="px-5 py-4 space-y-3">
           <BarRow label={T(lang, "Reported Cases")} value={fdrs?.reportedCases ?? 0} max={35} note={T(lang, "Phase 3")} />
-          <BarRow label={T(lang, "Historical Risk")} value={fdrs?.historical ?? historicalRiskFor(farm.taluka)} max={20} note={farm.taluka} />
+          <BarRow label={T(lang, "Historical Risk")} value={fdrs?.historical ?? historicalRiskFor(farm.taluka)} max={20} note={T(lang, farm.taluka)} />
           <BarRow
             label={T(lang, "Environmental Risk")}
             value={envRisk ?? "--"}
@@ -393,7 +393,7 @@ function RiskTab({ farm, fdrs, band, envRisk, envEntry, envLive, envSource, envF
       {envLive && (
         <Card title={T(lang, "Recommended preventive actions")} className="mt-4">
           <p className="text-xs text-gray-400 mb-3">
-            {T(lang, "Predicted from this locality's soil, humidity, rainfall & vegetation stress")} — {T(lang, "for")} {farm.village}, {farm.district}.
+            {T(lang, "Predicted from this locality's soil, humidity, rainfall & vegetation stress")} — {T(lang, "for")} {T(lang, farm.village)}, {T(lang, farm.district)}.
           </p>
           {Array.isArray(envEntry?.diseases) && envEntry.diseases.length > 0 ? (
             <div className="space-y-3">
@@ -421,7 +421,7 @@ function RiskTab({ farm, fdrs, band, envRisk, envEntry, envLive, envSource, envF
         <Card title={T(lang, "AI explanation")} className="mt-4">
           <p className="text-sm text-gray-600 leading-relaxed">
             {T(lang, "The AI blends")} {fdrs?.reportedCases ?? 0}/35 {T(lang, "reported-case pressure")},{" "}
-            {fdrs?.historical ?? historicalRiskFor(farm.taluka)}/20 {T(lang, "historical risk for")} {farm.taluka},{" "}
+            {fdrs?.historical ?? historicalRiskFor(farm.taluka)}/20 {T(lang, "historical risk for")} {T(lang, farm.taluka)},{" "}
             {envRisk ?? 0}/25 {T(lang, "environmental risk")}{envSource === "live" ? ` ${T(lang, "from live satellite/soil readings")}` : ` ${T(lang, "(no live signal)")}`},{" "}
             {T(lang, "and")} {fdrs?.nearby ?? 0}/20 {T(lang, "nearby-outbreak pressure")} {T(lang, "to produce this farm's FDRS of")} {fdrs?.total ?? "--"}/100.
           </p>
@@ -477,7 +477,7 @@ function SensingTab({ farm, latestReading, envLive, envEntry }) {
             right={<span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700">● {T(lang, "LIVE")}</span>}
           >
             <p className="text-xs text-gray-400 mb-3">
-              {T(lang, "Predicted from this locality's soil, humidity, rainfall & vegetation stress")} — {T(lang, "for")} {farm.village}, {farm.district}.
+              {T(lang, "Predicted from this locality's soil, humidity, rainfall & vegetation stress")} — {T(lang, "for")} {T(lang, farm.village)}, {T(lang, farm.district)}.
             </p>
             <div className="space-y-3">
               {envEntry.diseases.map((d) => (
@@ -827,7 +827,11 @@ function LocationTab({ farm, criticalClusters, showRings }) {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <Marker position={[farm.lat, farm.lng]} icon={markerIcon} />
+        <Marker position={[farm.lat, farm.lng]} icon={markerIcon}>
+          <Tooltip direction="top" offset={[0, -22]}>
+            {T(lang, farm.name)} · {T(lang, farm.village)}, {T(lang, farm.taluka)}
+          </Tooltip>
+        </Marker>
         {farm.polygon && (
           <Polygon
             positions={farm.polygon}

@@ -125,9 +125,9 @@ export default function ReportScreen() {
                   onClick={() => setFarmId(f.farm_id)}
                   className="flex items-center justify-between px-4 py-3 rounded-xl border bg-white transition-colors hover:border-primary"
                 >
-                  <span className="font-medium text-sm">{f.name}</span>
+                  <span className="font-medium text-sm">{T(lang, f.name)}</span>
                   <span className="text-gray-400 text-xs">
-                    {f.herd_size} {f.animal_type}(s) · {f.village}
+                    {f.herd_size} {T(lang, f.animal_type)}(s) · {T(lang, f.village)}
                   </span>
                 </button>
               ))}
@@ -178,8 +178,8 @@ export default function ReportScreen() {
             <div className="flex items-center gap-3 mb-5">
               <span className="text-3xl">{categoryIcon}</span>
               <div>
-                <h2 className="font-bold text-lg">{farm.name}</h2>
-                <p className="text-sm text-gray-500">{farm.herd_size} {farm.animal_type}(s) · {farm.village}</p>
+                <h2 className="font-bold text-lg">{T(lang, farm.name)}</h2>
+                <p className="text-sm text-gray-500">{farm.herd_size} {T(lang, farm.animal_type)}(s) · {T(lang, farm.village)}</p>
               </div>
               <button
                 onClick={() => {

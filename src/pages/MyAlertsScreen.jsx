@@ -81,7 +81,7 @@ export default function MyAlertsScreen() {
                         </div>
                         <span className="text-[10px] text-gray-400">{new Date(m.ts).toLocaleString()}</span>
                       </div>
-                      {farm && <p className="text-[11px] text-gray-500 mt-1">📍 {farm.name} · {farm.village}</p>}
+                      {farm && <p className="text-[11px] text-gray-500 mt-1">📍 {T(lang, farm.name)} · {T(lang, farm.village)}</p>}
                       <p className="text-sm text-gray-800 leading-relaxed mt-1">{m[lang] || m.en}</p>
                     </div>
                   );

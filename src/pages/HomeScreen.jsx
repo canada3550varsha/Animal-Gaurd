@@ -101,9 +101,9 @@ export default function HomeScreen() {
                   >
                     <span className="text-2xl shrink-0">{getCategoryIcon(farm)}</span>
                     <span className="min-w-0 flex-1">
-                      <span className="block font-semibold text-gray-900 truncate">{farm.name}</span>
+                      <span className="block font-semibold text-gray-900 truncate">{T(lang, farm.name)}</span>
                       <span className="block text-xs text-gray-500 truncate">
-                        {farm.herd_size} {T(lang, farm.animal_type)} · {farm.village}, {farm.taluka}
+                        {farm.herd_size} {T(lang, farm.animal_type)} · {T(lang, farm.village)}, {T(lang, farm.taluka)}
                       </span>
                     </span>
                     <span className={`px-2.5 py-1 rounded-full text-xs font-medium shrink-0 ${band.bg} ${band.text}`}>
@@ -148,7 +148,7 @@ export default function HomeScreen() {
               {latestReport ? (
                 <>
                   <p className="text-sm font-semibold text-gray-900 mt-1 truncate">
-                    {latestReportFarm?.name || `Farm ${latestReport.farm_id.slice(-4)}`} —{" "}
+                    {T(lang, latestReportFarm?.name) || `Farm ${latestReport.farm_id.slice(-4)}`} —{" "}
                     {(latestReport.symptoms || []).map((id) => symptomLabel(latestReportFarm || {}, id)).slice(0, 3).join(", ")}
                   </p>
                   <p className="text-[11px] text-gray-400 mt-1">{T(lang, "View all reports in My Reports →")}</p>

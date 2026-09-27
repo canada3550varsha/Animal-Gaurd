@@ -56,7 +56,7 @@ export default function MyLabResultsScreen() {
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs font-semibold text-gray-900 truncate">
                         {SAMPLE_TYPE_LABEL[s.sample_type]?.icon || "🧪"} {SAMPLE_TYPE_LABEL[s.sample_type]?.label || s.sample_type} sample
-                        {f ? ` · ${f.name}` : ""}
+                        {f ? ` · ${T(lang, f.name)}` : ""}
                       </p>
                       {s.status === "resulted" && res ? (
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 ${res.cls}`}>{res.label}</span>

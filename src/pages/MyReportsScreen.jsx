@@ -52,7 +52,7 @@ export default function MyReportsScreen() {
                   <div key={r.id} className="bg-white rounded-xl border border-gray-100 p-3">
                     <div className="flex items-start justify-between gap-2">
                       <p className="font-medium text-gray-900 truncate">
-                        {emoji} {f?.name || r.farm_name}
+                        {emoji} {T(lang, f?.name || r.farm_name)}
                       </p>
                       <div className="flex gap-1 shrink-0">
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">
