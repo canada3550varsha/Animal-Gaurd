@@ -5,7 +5,7 @@ import { T, LANGUAGES } from "../../data/i18n.js";
 
 const ROLE_LABEL = {
   farmer: "Livestock Owner",
-  vet: "Veterinary Officer",
+  vet: "Veterinary",
   admin: "District Admin",
   lab: "Lab Analyst",
 };

@@ -16,7 +16,7 @@ const ROLES = [
   {
     key: "vet",
     icon: "🩺",
-    title: "Veterinary Officer",
+    title: "Veterinary",
     desc: "District outbreak dashboard, lab diagnostics and case escalation.",
     accent: "bg-blue-100",
   },
