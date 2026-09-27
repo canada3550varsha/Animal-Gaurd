@@ -11,12 +11,7 @@ const ROLE_LABEL = {
 };
 
 // Role-scoped navigation, grouped into labelled sections. Every entry points at
-// a real route. The DEMO/INFORMATION group is shared by all roles.
-const DEMO_INFO = [
-  { to: "/architecture", icon: "🏗️", label: "Architecture" },
-  { to: "/walkthrough", icon: "🎬", label: "Walkthrough" },
-];
-
+// a real route.
 const NAV = {
   farmer: [
     {
@@ -185,24 +180,13 @@ export default function AppShell({ title, subtitle, actions, children }) {
         ))}
 
         <div className="mt-4 border-t border-white/10 pt-3">
-          {!collapsed && (
-            <p className="px-3 pb-1 text-[10px] uppercase tracking-widest text-slate-500">{T(lang, "Demo / Information")}</p>
-          )}
-          <div className="space-y-1">
-            {DEMO_INFO.map((item) => (
-              <NavButton key={item.to} item={{ ...item, label: T(lang, item.label) }} collapsed={collapsed} onNavigate={goTo} />
-            ))}
-          </div>
+          <NavButton
+            item={{ to: "/", icon: "🔄", label: T(lang, "Switch Role") }}
+            collapsed={collapsed}
+            onNavigate={goTo}
+          />
         </div>
       </nav>
-
-      <div className="p-3 border-t border-white/10 space-y-1">
-        <NavButton
-          item={{ to: "/", icon: "🔄", label: T(lang, "Switch Role") }}
-          collapsed={collapsed}
-          onNavigate={goTo}
-        />
-      </div>
     </div>
   );
 

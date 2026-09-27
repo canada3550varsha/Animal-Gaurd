@@ -21,9 +21,11 @@ export function Stat({ icon, iconBg = "bg-gray-100", label, value, sub, tone = "
   }[tone] || "text-ink";
   return (
     <Card className="p-4 flex items-start gap-3">
-      <span className={`w-11 h-11 rounded-xl ${iconBg} flex items-center justify-center text-xl shrink-0`}>
-        {icon}
-      </span>
+      {icon && (
+        <span className={`w-11 h-11 rounded-xl ${iconBg} flex items-center justify-center text-xl shrink-0`}>
+          {icon}
+        </span>
+      )}
       <div className="min-w-0">
         <p className={`text-2xl font-bold leading-tight truncate ${toneCls}`}>{value}</p>
         <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mt-0.5">{label}</p>
