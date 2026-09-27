@@ -51,8 +51,10 @@ export default function HomeScreen() {
 
   const getCategoryIcon = (farm) => ANIMAL_ICONS[farm.animal_category]?.[farm.animal_type] || "🐾";
 
-  const symptomLabel = (farm, id) =>
-    (SYMPTOMS[farm.animal_category] || []).find((s) => s.id === id)?.label || id;
+  const symptomLabel = (farm, id) => {
+    const label = (SYMPTOMS[farm.animal_category] || []).find((s) => s.id === id)?.label;
+    return label ? T(lang, label) : id;
+  };
 
   return (
     <AppShell title={T(lang, "My Dashboard")} subtitle={`${T(lang, "Welcome, ")}${user?.name}`}>
@@ -61,7 +63,7 @@ export default function HomeScreen() {
 
         {/* Summary stats — own data only */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Stat icon="🏡" iconBg="bg-green-100" label={T(lang, "My farms")} value={farms.length} tone="ink" sub={`${livestockCount} livestock · ${poultryCount} poultry`} />
+          <Stat icon="🏡" iconBg="bg-green-100" label={T(lang, "My farms")} value={farms.length} tone="ink" sub={`${livestockCount} ${T(lang, "livestock")} · ${poultryCount} ${T(lang, "poultry")}`} />
           <Stat icon="🩺" iconBg="bg-blue-100" label={T(lang, "Reports (7d)")} value={reports7} tone="blue" sub={T(lang, "submitted by you")} />
           <Stat icon="💉" iconBg="bg-indigo-100" label={T(lang, "Health records")} value={health.length} tone="ink" sub={T(lang, "vaccinations · treatments · deworming")} />
           <Stat icon="🔔" iconBg="bg-amber-100" label={T(lang, "Unread alerts")} value={unread} tone={unread > 0 ? "red" : "ink"} sub={T(lang, "messages for your farms")} />
@@ -101,7 +103,7 @@ export default function HomeScreen() {
                     <span className="min-w-0 flex-1">
                       <span className="block font-semibold text-gray-900 truncate">{farm.name}</span>
                       <span className="block text-xs text-gray-500 truncate">
-                        {farm.herd_size} {farm.animal_type}(s) · {farm.village}, {farm.taluka}
+                        {farm.herd_size} {T(lang, farm.animal_type)} · {farm.village}, {farm.taluka}
                       </span>
                     </span>
                     <span className={`px-2.5 py-1 rounded-full text-xs font-medium shrink-0 ${band.bg} ${band.text}`}>
@@ -136,10 +138,10 @@ export default function HomeScreen() {
                 >
                   {latestReport?.ai_screened === true
                     ? latestReport.ai_status === "high" || latestReport.ai_status === "suspicious"
-                      ? "⚠ SCREENED"
-                      : "✓ SCREENED"
+                      ? `⚠ ${T(lang, "SCREENED")}`
+                      : `✓ ${T(lang, "SCREENED")}`
                     : latestReport
-                      ? "PENDING"
+                      ? T(lang, "PENDING")
                       : ""}
                 </span>
               </div>
@@ -164,15 +166,19 @@ export default function HomeScreen() {
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-semibold text-gray-400 uppercase">{T(lang, "Latest alert")}</p>
                 {latestMessage && !latestMessage.read && (
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500 text-white font-bold">NEW</span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500 text-white font-bold">{T(lang, "NEW")}</span>
                 )}
               </div>
               {latestMessage ? (
                 <>
                   <p className="text-sm font-semibold text-gray-900 mt-1">
-                    {latestMessage.type === "vet" ? "🐮 Vet Dispatch" : latestMessage.type === "advisory" ? "📢 Advisory" : "🔔 Update"}
+                    {latestMessage.type === "vet"
+                      ? `🐮 ${T(lang, "Vet Dispatch")}`
+                      : latestMessage.type === "advisory"
+                        ? `📢 ${T(lang, "Advisory")}`
+                        : `🔔 ${T(lang, "Update")}`}
                   </p>
-                  <p className="text-xs text-gray-600 mt-0.5 truncate">{latestMessage.en}</p>
+                  <p className="text-xs text-gray-600 mt-0.5 truncate">{latestMessage[lang] || latestMessage.en}</p>
                   <p className="text-[11px] text-gray-400 mt-1">{T(lang, "View all alerts in My Alerts →")}</p>
                 </>
               ) : (
@@ -195,7 +201,8 @@ export default function HomeScreen() {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold text-gray-900">
-                  {liveCount} {T(lang, "of")} {farms.length} farm{farms.length === 1 ? "" : "s"} {T(lang, "farms streaming live sensing")}
+                  {liveCount} {T(lang, "of")} {farms.length} {farms.length === 1 ? T(lang, "farm") : T(lang, "farms")}{" "}
+                  {T(lang, "streaming live sensing")}
                 </span>
                 <span className="block text-[11px] text-gray-400">{T(lang, "Open a farm in My Farm to view its readings")}</span>
               </span>

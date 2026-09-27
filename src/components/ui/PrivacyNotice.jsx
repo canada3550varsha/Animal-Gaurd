@@ -1,3 +1,6 @@
+import { useApp } from "../../context/AppContext.jsx";
+import { T } from "../../data/i18n.js";
+
 const PRIVACY_BY_ROLE = {
   farmer: {
     icon: "🔒",
@@ -26,13 +29,14 @@ const PRIVACY_BY_ROLE = {
 };
 
 export default function PrivacyNotice({ role, compact = false }) {
+  const { lang } = useApp();
   const p = PRIVACY_BY_ROLE[role] || PRIVACY_BY_ROLE.farmer;
   return (
     <div className={`flex items-start gap-3 rounded-2xl border ${p.cls} ${compact ? "p-3" : "p-4"}`}>
       <span className={`${compact ? "text-lg" : "text-2xl"} leading-none shrink-0`}>{p.icon}</span>
       <div className="min-w-0">
-        <p className={`font-bold ${compact ? "text-xs" : "text-sm"} leading-tight`}>{p.title}</p>
-        <p className={`${compact ? "text-[11px]" : "text-xs"} mt-0.5 opacity-90 leading-snug`}>{p.text}</p>
+        <p className={`font-bold ${compact ? "text-xs" : "text-sm"} leading-tight`}>{T(lang, p.title)}</p>
+        <p className={`${compact ? "text-[11px]" : "text-xs"} mt-0.5 opacity-90 leading-snug`}>{T(lang, p.text)}</p>
       </div>
     </div>
   );
