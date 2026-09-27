@@ -19,19 +19,19 @@ export default function MyFarmScreen() {
   const poultryCount = farms.filter((f) => f.animal_category === "poultry").length;
 
   return (
-    <AppShell title={T(lang, "My Farm")} subtitle={`Registered by ${user?.name}`}>
+    <AppShell title={T(lang, "My Farm")} subtitle={`${T(lang, "Registered by")} ${user?.name}`}>
       <div className="space-y-6">
         <PrivacyNotice role="farmer" />
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Stat icon="🏡" iconBg="bg-green-100" label="My farms" value={farms.length} tone="ink" sub={`${livestockCount} livestock · ${poultryCount} poultry`} />
+          <Stat icon="🏡" iconBg="bg-green-100" label={T(lang, "My farms")} value={farms.length} tone="ink" sub={`${livestockCount} ${T(lang, "livestock")} · ${poultryCount} ${T(lang, "poultry")}`} />
           <Stat
             icon="📍"
             iconBg="bg-blue-100"
-            label="District"
+            label={T(lang, "District")}
             value={user?.district || "—"}
             tone="blue"
-            sub={user?.taluka ? `Taluka ${user.taluka}` : "own farms only"}
+            sub={user?.taluka ? `${T(lang, "Taluka")} ${user.taluka}` : T(lang, "own farms only")}
           />
         </div>
 
@@ -51,7 +51,7 @@ export default function MyFarmScreen() {
             <EmptyState
               icon="🏡"
               title={T(lang, "No farms registered yet")}
-              sub="Register your farm to start tracking its health and disease risk."
+              sub={T(lang, "Register your farm to start tracking its health and disease risk.")}
               action={
                 <button onClick={() => navigate("/register-farm")} className="btn-primary px-5 py-2.5">
                   ➕ {T(lang, "Register Farm")}
@@ -77,7 +77,7 @@ export default function MyFarmScreen() {
                         <div className="min-w-0">
                           <h3 className="font-semibold text-gray-900 truncate">{farm.name}</h3>
                           <p className="text-sm text-gray-500">
-                            {farm.herd_size} {farm.animal_type}(s) · {CATEGORY_LABELS[farm.animal_category]}
+                            {farm.herd_size} {T(lang, farm.animal_type)} · {T(lang, CATEGORY_LABELS[farm.animal_category])}
                           </p>
                           <p className="text-xs text-gray-400 mt-0.5">
                             📍 {farm.village}, {farm.taluka}, {farm.district}
@@ -105,10 +105,10 @@ export default function MyFarmScreen() {
                               : "bg-gray-100 text-gray-500"
                         }`}
                       >
-                        {reading?.fetch_status === "success" ? "● LIVE sensing" : reading ? "⏳ Sensing pending" : "○ No reading yet"}
+                        {reading?.fetch_status === "success" ? `● ${T(lang, "LIVE sensing")}` : reading ? `⏳ ${T(lang, "Sensing pending")}` : `○ ${T(lang, "No reading yet")}`}
                       </span>
                       <button className="ml-auto text-xs font-semibold text-primary hover:underline">
-                        Open farm →
+                        {T(lang, "Open farm →")}
                       </button>
                     </div>
                   </div>
@@ -119,8 +119,7 @@ export default function MyFarmScreen() {
         </section>
 
         <p className="text-[11px] text-gray-400 leading-snug">
-          🔒 This list is filtered server-side to your user ID — other farmers' farms are never sent to your
-          session, and their names, locations, risk scores and health records cannot appear here.
+          {T(lang, "🔒 This list is filtered server-side to your user ID — other farmers' farms are never sent to your session, and their names, locations, risk scores and health records cannot appear here.")}
         </p>
       </div>
     </AppShell>

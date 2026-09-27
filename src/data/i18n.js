@@ -147,6 +147,20 @@ const DICT = {
     "Ruffled feathers": "फूले हुए पंख",
     "Swollen head / comb": "सूजा हुआ सिर / कलगी",
     "Sudden mass mortality": "अचानक सामूहिक मृत्यु",
+    "Registered by": "द्वारा पंजीकृत",
+    District: "जिला",
+    Taluka: "तालुका",
+    "own farms only": "केवल अपने फार्म",
+    "Register your farm to start tracking its health and disease risk.":
+      "अपना फार्म पंजीकृत करके उसके स्वास्थ्य और रोग जोखिम पर नज़र रखें।",
+    "Large Livestock": "बड़े पशुधन",
+    Poultry: "मुर्गीपालन",
+    "LIVE sensing": "लाइव सेंसिंग",
+    "Sensing pending": "सेंसिंग लंबित",
+    "No reading yet": "अभी कोई रीडिंग नहीं",
+    "Open farm →": "फार्म खोलें →",
+    "🔒 This list is filtered server-side to your user ID — other farmers' farms are never sent to your session, and their names, locations, risk scores and health records cannot appear here.":
+      "🔒 यह सूची आपकी यूज़र आईडी के आधार पर सर्वर-साइड फ़िल्टर होती है — अन्य किसानों के फार्म आपके सेशन में कभी नहीं भेजे जाते, और उनके नाम, स्थान, जोखिम स्कोर तथा स्वास्थ्य रिकॉर्ड यहां प्रकट नहीं हो सकते।",
   },
   mr: {
     "My Dashboard": "माझे डॅशबोर्ड",
@@ -283,6 +297,20 @@ const DICT = {
     "Ruffled feathers": "फुललेली पिसे",
     "Swollen head / comb": "सुजलेले डोके / कंठा",
     "Sudden mass mortality": "अचानक सामूहिक मृत्यू",
+    "Registered by": "नोंदणी केले",
+    District: "जिल्हा",
+    Taluka: "तालुका",
+    "own farms only": "फक्त स्वतःची शेते",
+    "Register your farm to start tracking its health and disease risk.":
+      "तुमचे शेत नोंदणी करून त्याचे आरोग्य आणि रोग जोखीम ट्रॅक करा.",
+    "Large Livestock": "मोठे पशुधन",
+    Poultry: "कुक्कुट",
+    "LIVE sensing": "लाइव्ह सेन्सिंग",
+    "Sensing pending": "सेन्सिंग प्रलंबित",
+    "No reading yet": "अजून रीडिंग नाही",
+    "Open farm →": "शेत उघडा →",
+    "🔒 This list is filtered server-side to your user ID — other farmers' farms are never sent to your session, and their names, locations, risk scores and health records cannot appear here.":
+      "🔒 ही यादी सर्व्हर-साइड तुमच्या यूजर आयडीनुसार फिल्टर केली जाते — इतर शेतकऱ्यांची शेते तुमच्या सेशनमध्ये कधीही पाठवली जात नाहीत आणि त्यांची नावे, ठिकाणे, जोखीम स्कोअर आणि आरोग्य नोंदी येथे दिसू शकत नाहीत.",
   },
 };
 
