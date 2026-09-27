@@ -168,7 +168,7 @@ export function AppProvider({ children }) {
 
   // Latest raw sensing row for a farm (from the /api/sensing poll), or null.
   const getLatestReading = useCallback(
-    (farmId) => sensing.find((row) => row.farm.farm_id === farmId)?.reading ?? null,
+    (farmId) => sensing.find((row) => row?.farm?.farm_id === farmId)?.reading ?? null,
     [sensing]
   );
 
@@ -297,6 +297,7 @@ export function AppProvider({ children }) {
       let ringInfo = null;
       for (const c of criticalClusters) {
         if (c.animal_category !== farm.animal_category) continue;
+        if (farm.lat == null || farm.lng == null || !c?.centroid) continue;
         const dist = haversineKm(farm.lat, farm.lng, c.centroid.lat, c.centroid.lng);
         if (dist <= RING_OUTER_KM) {
           const score =

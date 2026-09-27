@@ -109,16 +109,7 @@ export default function LandingScreen() {
           <p className="text-red-600 text-sm mt-6 bg-red-50 border border-red-200 rounded-xl px-4 py-2">{error}</p>
         )}
 
-        <div className="flex flex-wrap items-center justify-center gap-3 mt-10">
-          <button onClick={() => navigate("/architecture")} className="btn-secondary px-4 py-2.5">
-            🏗️ Architecture
-          </button>
-          <button onClick={() => navigate("/walkthrough")} className="btn px-4 py-2.5 bg-amber-500 text-white hover:bg-amber-600">
-            🎬 Judge Walkthrough
-          </button>
-        </div>
-
-        <p className="text-[11px] text-gray-400 mt-6">
+        <p className="text-[11px] text-gray-400 mt-10">
           Demo instance — signing in automatically with the role's sample account
         </p>
       </main>
