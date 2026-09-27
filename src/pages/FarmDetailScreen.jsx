@@ -262,6 +262,7 @@ function Card({ title, right, children, className = "" }) {
 }
 
 function OverviewTab({ farm, categoryIcon, fdrs, band, envRisk, envFetchedAt, latestReading, healthCount, reportCount, farmInbox }) {
+  const { lang } = useApp();
   const unread = farmInbox.filter((m) => !m.read).length;
   return (
     <>
@@ -270,42 +271,43 @@ function OverviewTab({ farm, categoryIcon, fdrs, band, envRisk, envFetchedAt, la
           <span className="text-4xl">{categoryIcon}</span>
           <div className="flex-1">
             <h2 className="font-bold text-xl">{farm.name}</h2>
-            <p className="text-sm text-gray-500">{CATEGORY_LABELS[farm.animal_category]}</p>
+            <p className="text-sm text-gray-500">{T(lang, CATEGORY_LABELS[farm.animal_category])}</p>
           </div>
           <span className={`px-3 py-1 rounded-full text-xs font-medium ${band.bg} ${band.text}`}>
-            {band.label} risk
+            {T(lang, band.label)} {T(lang, "risk")}
           </span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm mt-5">
-          <InfoItem label="Animal Type" value={farm.animal_type.charAt(0).toUpperCase() + farm.animal_type.slice(1)} />
-          <InfoItem label="Herd Size" value={`${farm.herd_size}`} />
-          <InfoItem label="Village" value={farm.village} />
-          <InfoItem label="District" value={farm.district} />
+          <InfoItem label={T(lang, "Animal Type")} value={farm.animal_type.charAt(0).toUpperCase() + farm.animal_type.slice(1)} />
+          <InfoItem label={T(lang, "Herd Size")} value={`${farm.herd_size}`} />
+          <InfoItem label={T(lang, "Village")} value={farm.village} />
+          <InfoItem label={T(lang, "District")} value={farm.district} />
         </div>
 
         <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <InfoItem label="FDRS · Current Risk" value={fdrs ? `${fdrs.total}/100` : "--"} />
-          <InfoItem label="Environmental Risk" value={envRisk != null ? `${envRisk}/25` : "—"} />
-          <InfoItem label="Live Sensing" value={latestReading?.fetch_status === "success" ? "● LIVE" : "offline"} />
-          <InfoItem label="Health Records" value={`${healthCount}`} />
+          <InfoItem label={T(lang, "FDRS · Current Risk")} value={fdrs ? `${fdrs.total}/100` : "--"} />
+          <InfoItem label={T(lang, "Environmental Risk")} value={envRisk != null ? `${envRisk}/25` : "—"} />
+          <InfoItem label={T(lang, "Live Sensing")} value={latestReading?.fetch_status === "success" ? `● ${T(lang, "LIVE")}` : T(lang, "offline")} />
+          <InfoItem label={T(lang, "Health Records")} value={`${healthCount}`} />
         </div>
 
         {envFetchedAt && (
           <p className="text-[11px] text-gray-400 mt-3">
-            Risk last updated {timeAgo(envFetchedAt)} · {reportCount} farm report{reportCount === 1 ? "" : "s"} ·{" "}
-            {unread > 0 ? `${unread} unread alert${unread === 1 ? "" : "s"}` : "no unread alerts"}
+            {T(lang, "Risk last updated")} {timeAgo(envFetchedAt)} · {reportCount}{" "}
+            {reportCount === 1 ? T(lang, "farm report") : T(lang, "farm reports")} ·{" "}
+            {unread > 0 ? `${unread} ${unread === 1 ? T(lang, "unread alert") : T(lang, "unread alerts")}` : T(lang, "no unread alerts")}
           </p>
         )}
       </div>
 
       {fdrs && (
-        <Card title="Current risk — at a glance">
+        <Card title={T(lang, "Current risk — at a glance")}>
           <div className="space-y-3">
-            <BarRow label="Reported Cases" value={fdrs?.reportedCases ?? 0} max={35} note="Phase 3" />
-            <BarRow label="Historical Risk" value={fdrs?.historical ?? historicalRiskFor(farm.taluka)} max={20} note={farm.taluka} />
-            <BarRow label="Environmental Risk" value={envRisk ?? "--"} max={25} note={envRisk == null ? "no live signal" : "live soil/remote sensing"} />
-            <BarRow label="Nearby Outbreak" value={fdrs?.nearby ?? 0} max={20} note={fdrs?.ringInfo ? `${fdrs.ringInfo.dist.toFixed(1)}km from cluster` : "ring-based"} />
+            <BarRow label={T(lang, "Reported Cases")} value={fdrs?.reportedCases ?? 0} max={35} note={T(lang, "Phase 3")} />
+            <BarRow label={T(lang, "Historical Risk")} value={fdrs?.historical ?? historicalRiskFor(farm.taluka)} max={20} note={farm.taluka} />
+            <BarRow label={T(lang, "Environmental Risk")} value={envRisk ?? "--"} max={25} note={envRisk == null ? T(lang, "no live signal") : T(lang, "live soil/remote sensing")} />
+            <BarRow label={T(lang, "Nearby Outbreak")} value={fdrs?.nearby ?? 0} max={20} note={fdrs?.ringInfo ? `${fdrs.ringInfo.dist.toFixed(1)}${T(lang, "km from cluster")}` : T(lang, "ring-based")} />
           </div>
         </Card>
       )}
@@ -328,7 +330,7 @@ function RiskTab({ farm, fdrs, band, envRisk, envEntry, envLive, envSource, envF
           </div>
         </div>
         <div className="px-5 py-4 space-y-3">
-          <BarRow label={T(lang, "Reported Cases")} value={fdrs?.reportedCases ?? 0} max={35} note="Phase 3" />
+          <BarRow label={T(lang, "Reported Cases")} value={fdrs?.reportedCases ?? 0} max={35} note={T(lang, "Phase 3")} />
           <BarRow label={T(lang, "Historical Risk")} value={fdrs?.historical ?? historicalRiskFor(farm.taluka)} max={20} note={farm.taluka} />
           <BarRow
             label={T(lang, "Environmental Risk")}
@@ -336,54 +338,54 @@ function RiskTab({ farm, fdrs, band, envRisk, envEntry, envLive, envSource, envF
             max={25}
             note={
               loadingEnv
-                ? "fetching…"
+                ? T(lang, "fetching…")
                 : envSource === "live"
-                  ? `${envBand(envRisk).label.toLowerCase()} · live soil/remote sensing`
-                  : "seeded (no live signal)"
+                  ? `${T(lang, envBand(envRisk).label).toLowerCase()} · ${T(lang, "live soil/remote sensing")}`
+                  : T(lang, "seeded (no live signal)")
             }
           />
           <BarRow
             label={T(lang, "Nearby Outbreak")}
             value={fdrs?.nearby ?? 0}
             max={20}
-            note={fdrs?.ringInfo ? `${fdrs.ringInfo.dist.toFixed(1)}km from cluster` : "ring-based"}
+            note={fdrs?.ringInfo ? `${fdrs.ringInfo.dist.toFixed(1)}${T(lang, "km from cluster")}` : T(lang, "ring-based")}
           />
         </div>
       </div>
 
       <Card title={T(lang, "Environmental Data")} className="mt-4">
-        {loadingEnv && <p className="text-xs text-gray-400 mb-3">· loading…</p>}
+        {loadingEnv && <p className="text-xs text-gray-400 mb-3">· {T(lang, "loading…")}</p>}
         <p className="text-[11px] text-gray-400 mb-3 leading-snug">
-          🛰️ These values are <span className="font-medium text-gray-600">fetched automatically</span> from live satellite / soil / weather sensors and scored by the disease-prediction AI — they are not typed or reported by anyone.
+          🛰️ {T(lang, "These values are fetched automatically from live satellite / soil / weather sensors and scored by the disease-prediction AI — they are not typed or reported by anyone.")}
         </p>
         {envFetchedAt && (
           <div className="flex items-center gap-2 mb-3">
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${envBand(envRisk).cls}`}>
-              {envBand(envRisk).label} risk
+              {T(lang, envBand(envRisk).label)} {T(lang, "risk")}
             </span>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
               envSource === "live" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
             }`}>
-              {envSource === "live" ? "● LIVE" : "offline"}
+              {envSource === "live" ? `● ${T(lang, "LIVE")}` : T(lang, "offline")}
             </span>
-            <span className="text-[10px] text-gray-400">updated {timeAgo(envFetchedAt)}</span>
+            <span className="text-[10px] text-gray-400">{T(lang, "updated")} {timeAgo(envFetchedAt)}</span>
           </div>
         )}
         {envLive ? (
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <InfoItem label="Soil Moisture" value={env.soil?.moisture != null ? `${(env.soil.moisture * 100).toFixed(0)}%` : "—"} />
-            <InfoItem label="Surface Temp" value={env.soil?.t0 != null ? `${env.soil.t0.toFixed(1)}°C` : env.weather?.temp != null ? `${env.weather.temp.toFixed(1)}°C` : "—"} />
-            <InfoItem label="Air Humidity" value={env.weather?.humidity != null ? `${env.weather.humidity.toFixed(0)}%` : "—"} />
-            <InfoItem label="7-day Rain" value={env.weather?.rain7d != null ? `${env.weather.rain7d.toFixed(1)}mm` : "—"} />
-            <InfoItem label="NDVI" value={env.sat?.ndvi != null ? env.sat.ndvi.toFixed(3) : "—"} />
-            <InfoItem label="NDWI" value={env.sat?.ndwi != null ? env.sat.ndwi.toFixed(3) : "—"} />
-            <InfoItem label="Coverage Zone" value="~150m polygon" />
+            <InfoItem label={T(lang, "Soil Moisture")} value={env.soil?.moisture != null ? `${(env.soil.moisture * 100).toFixed(0)}%` : "—"} />
+            <InfoItem label={T(lang, "Surface Temp")} value={env.soil?.t0 != null ? `${env.soil.t0.toFixed(1)}°C` : env.weather?.temp != null ? `${env.weather.temp.toFixed(1)}°C` : "—"} />
+            <InfoItem label={T(lang, "Air Humidity")} value={env.weather?.humidity != null ? `${env.weather.humidity.toFixed(0)}%` : "—"} />
+            <InfoItem label={T(lang, "7-day Rain")} value={env.weather?.rain7d != null ? `${env.weather.rain7d.toFixed(1)}mm` : "—"} />
+            <InfoItem label={T(lang, "NDVI")} value={env.sat?.ndvi != null ? env.sat.ndvi.toFixed(3) : "—"} />
+            <InfoItem label={T(lang, "NDWI")} value={env.sat?.ndwi != null ? env.sat.ndwi.toFixed(3) : "—"} />
+            <InfoItem label={T(lang, "Coverage Zone")} value={T(lang, "~150m polygon")} />
           </div>
         ) : (
           <p className="text-sm text-gray-400">
             {loadingEnv
-              ? "Fetching live soil, humidity & remote sensing data…"
-              : "No live sensor/remote-sensing signal in this offline demo, so the Environmental Risk component is 0 — this is not real weather data. Add a real remote-sensing API key in server/.env to fetch live soil, humidity & weather per farm."}
+              ? T(lang, "Fetching live soil, humidity & remote sensing data…")
+              : T(lang, "No live sensor/remote-sensing signal in this offline demo, so the Environmental Risk component is 0 — this is not real weather data. Add a real remote-sensing API key in server/.env to fetch live soil, humidity & weather per farm.")}
           </p>
         )}
       </Card>
@@ -391,7 +393,7 @@ function RiskTab({ farm, fdrs, band, envRisk, envEntry, envLive, envSource, envF
       {envLive && (
         <Card title={T(lang, "Recommended preventive actions")} className="mt-4">
           <p className="text-xs text-gray-400 mb-3">
-            Predicted from this locality's soil, humidity, rainfall &amp; vegetation stress — for {farm.village}, {farm.district}.
+            {T(lang, "Predicted from this locality's soil, humidity, rainfall & vegetation stress")} — {T(lang, "for")} {farm.village}, {farm.district}.
           </p>
           {Array.isArray(envEntry?.diseases) && envEntry.diseases.length > 0 ? (
             <div className="space-y-3">
@@ -405,12 +407,12 @@ function RiskTab({ farm, fdrs, band, envRisk, envEntry, envLive, envSource, envF
                       {d.status.toUpperCase()} · {d.score}/100
                     </span>
                   </div>
-                  <p className="text-[11px] text-gray-500 mt-1">Do: {d.actions?.en} {d.actions?.hi} {d.actions?.mr}</p>
+                  <p className="text-[11px] text-gray-500 mt-1">{T(lang, "Do:")} {d.actions?.en} {d.actions?.hi} {d.actions?.mr}</p>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-400">No predicted-disease recommendations right now.</p>
+            <p className="text-sm text-gray-400">{T(lang, "No predicted-disease recommendations right now.")}</p>
           )}
         </Card>
       )}
@@ -418,10 +420,10 @@ function RiskTab({ farm, fdrs, band, envRisk, envEntry, envLive, envSource, envF
       {(envLive || envRisk != null) && (
         <Card title={T(lang, "AI explanation")} className="mt-4">
           <p className="text-sm text-gray-600 leading-relaxed">
-            The AI blends {fdrs?.reportedCases ?? 0}/35 reported-case pressure,{" "}
-            {fdrs?.historical ?? historicalRiskFor(farm.taluka)}/20 historical risk for {farm.taluka},{" "}
-            {envRisk ?? 0}/25 environmental risk{envSource === "live" ? " from live satellite/soil readings" : " (no live signal)"}, and{" "}
-            {fdrs?.nearby ?? 0}/20 nearby-outbreak pressure to produce this farm's FDRS of {fdrs?.total ?? "--"}/100.
+            {T(lang, "The AI blends")} {fdrs?.reportedCases ?? 0}/35 {T(lang, "reported-case pressure")},{" "}
+            {fdrs?.historical ?? historicalRiskFor(farm.taluka)}/20 {T(lang, "historical risk for")} {farm.taluka},{" "}
+            {envRisk ?? 0}/25 {T(lang, "environmental risk")}{envSource === "live" ? ` ${T(lang, "from live satellite/soil readings")}` : ` ${T(lang, "(no live signal)")}`},{" "}
+            {T(lang, "and")} {fdrs?.nearby ?? 0}/20 {T(lang, "nearby-outbreak pressure")} {T(lang, "to produce this farm's FDRS of")} {fdrs?.total ?? "--"}/100.
           </p>
         </Card>
       )}
@@ -430,51 +432,52 @@ function RiskTab({ farm, fdrs, band, envRisk, envEntry, envLive, envSource, envF
 }
 
 function SensingTab({ farm, latestReading, envLive, envEntry }) {
+  const { lang } = useApp();
   return (
     <>
       <Card
-        title="📡 Live Sensing Data"
+        title={`📡 ${T(lang, "Live Sensing Data")}`}
         right={latestReading?.fetch_status === "success" ? (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-green-600 text-white">● LIVE</span>
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-green-600 text-white">● {T(lang, "LIVE")}</span>
         ) : latestReading ? (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700">PENDING</span>
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700">{T(lang, "PENDING")}</span>
         ) : (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-500">OFFLINE</span>
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-500">{T(lang, "OFFLINE")}</span>
         )}
       >
         <p className="text-[11px] text-gray-400 mb-3 leading-snug">
-          The raw readings captured on the last foreign-poll run for this farm — recorded every poll, whether or not an AI alert fired.
+          {T(lang, "The raw readings captured on the last foreign-poll run for this farm — recorded every poll, whether or not an AI alert fired.")}
         </p>
         {latestReading ? (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <InfoItem label="NDVI" value={fmtNum(latestReading.ndvi)} />
-              <InfoItem label="Soil Temp" value={fmtCel(latestReading.soil_temp)} />
-              <InfoItem label="Soil Moisture" value={fmtMoisture(latestReading.soil_moisture)} />
+              <InfoItem label={T(lang, "NDVI")} value={fmtNum(latestReading.ndvi)} />
+              <InfoItem label={T(lang, "Soil Temp")} value={fmtCel(latestReading.soil_temp)} />
+              <InfoItem label={T(lang, "Soil Moisture")} value={fmtMoisture(latestReading.soil_moisture)} />
             </div>
             <p className="text-[10px] text-gray-400 mt-3">
               {latestReading.id} · {timeAgo(latestReading.fetched_at)}
-              {latestReading.fetch_status === "pending" && " · waiting for the next satellite pass"}
+              {latestReading.fetch_status === "pending" && ` · ${T(lang, "waiting for the next satellite pass")}`}
             </p>
           </>
         ) : (
-          <p className="text-sm text-gray-400">No reading yet — waiting for the first Agro poll for this farm.</p>
+          <p className="text-sm text-gray-400">{T(lang, "No reading yet — waiting for the first Agro poll for this farm.")}</p>
         )}
       </Card>
 
       {!envLive ? (
         <p className="text-xs text-gray-400 mt-1">
-          No live sensor/remote-sensing signal in this offline demo — readings above are the raw Agro poll rows only.
+          {T(lang, "No live sensor/remote-sensing signal in this offline demo — readings above are the raw Agro poll rows only.")}
         </p>
       ) : (
         Array.isArray(envEntry?.diseases) &&
         envEntry.diseases.length > 0 && (
           <Card
-            title="🛰️ Predicted Disease Risk (Live Sensing)"
-            right={<span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700">● LIVE</span>}
+            title={`🛰️ ${T(lang, "Predicted Disease Risk (Live Sensing)")}`}
+            right={<span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700">● {T(lang, "LIVE")}</span>}
           >
             <p className="text-xs text-gray-400 mb-3">
-              Predicted from this locality's soil, humidity, rainfall &amp; vegetation stress — for {farm.village}, {farm.district}.
+              {T(lang, "Predicted from this locality's soil, humidity, rainfall & vegetation stress")} — {T(lang, "for")} {farm.village}, {farm.district}.
             </p>
             <div className="space-y-3">
               {envEntry.diseases.map((d) => (
@@ -494,12 +497,12 @@ function SensingTab({ farm, latestReading, envLive, envEntry }) {
                     <div className={`h-full ${d.status === "critical" ? "bg-red-600" : d.status === "high" ? "bg-red-400" : d.status === "watch" ? "bg-amber-400" : "bg-green-400"}`} style={{ width: `${d.score}%` }} />
                   </div>
                   {d.reasons.length > 0 && (
-                    <p className="text-[11px] text-gray-500 mt-2">Why: {d.reasons.join("; ")}.</p>
+                    <p className="text-[11px] text-gray-500 mt-2">{T(lang, "Why:")} {d.reasons.join("; ")}.</p>
                   )}
-                  <p className="text-[11px] text-gray-500 mt-1">Do: {d.actions?.en} {d.actions?.hi} {d.actions?.mr}</p>
+                  <p className="text-[11px] text-gray-500 mt-1">{T(lang, "Do:")} {d.actions?.en} {d.actions?.hi} {d.actions?.mr}</p>
                   {d.status === "critical" && (
                     <p className="text-[11px] text-red-600 font-medium mt-2">
-                      ⚠ Auto-threshold crossed — Animal Guard filed an automatic report to the veterinary dashboard even without a farmer report.
+                      ⚠ {T(lang, "Auto-threshold crossed — Animal Guard filed an automatic report to the veterinary dashboard even without a farmer report.")}
                     </p>
                   )}
                 </div>
@@ -515,13 +518,12 @@ function SensingTab({ farm, latestReading, envLive, envEntry }) {
 function HealthTab({ _farm, health, categories, lang }) {
   const recs = health.filter((r) => categories.includes(r.record_type));
   return (
-    <Card title={`💉 ${T(lang, "Health Records")}`} right={<span className="text-[10px] text-gray-400">{recs.length} entr{recs.length === 1 ? "y" : "ies"}</span>}>
+    <Card title={`💉 ${T(lang, "Health Records")}`} right={<span className="text-[10px] text-gray-400">{recs.length} {recs.length === 1 ? T(lang, "entry") : T(lang, "entries")}</span>}>
       <p className="text-[11px] text-gray-400 mb-3 leading-snug">
-        The herd's health chart — every vaccine, deworming, treatment and mortality event, recorded by the
-        veterinary team and kept in the tamper-evident audit trail.
+        {T(lang, "The herd's health chart — every vaccine, deworming, treatment and mortality event, recorded by the veterinary team and kept in the tamper-evident audit trail.")}
       </p>
       {recs.length === 0 ? (
-        <p className="text-sm text-gray-400">No health records yet. Vaccinations & treatments your veterinary team records appear here.</p>
+        <p className="text-sm text-gray-400">{T(lang, "No health records yet. Vaccinations & treatments your veterinary team records appear here.")}</p>
       ) : (
         <div className="grid gap-2 md:grid-cols-2">
           {recs.map((r) => (
@@ -531,7 +533,7 @@ function HealthTab({ _farm, health, categories, lang }) {
                   <span className="text-lg">{healthIcon(r.record_type)}</span>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{r.name}</p>
-                    <p className="text-[11px] text-gray-500 uppercase">{healthLabel(r.record_type)}</p>
+                    <p className="text-[11px] text-gray-500 uppercase">{T(lang, healthLabel(r.record_type))}</p>
                   </div>
                 </div>
                 <span className="text-[11px] text-gray-400 shrink-0">
@@ -539,7 +541,7 @@ function HealthTab({ _farm, health, categories, lang }) {
                 </span>
               </div>
               <p className="text-[11px] text-gray-500 mt-1.5">
-                {[r.dose, r.batch && `Batch ${r.batch}`, r.disease && `🎯 ${r.disease}`].filter(Boolean).join(" · ") || "—"}
+                {[r.dose, r.batch && `${T(lang, "Batch")} ${r.batch}`, r.disease && `🎯 ${r.disease}`].filter(Boolean).join(" · ") || "—"}
               </p>
               {r.notes && <p className="text-[11px] text-gray-500 mt-1 leading-snug">{r.notes}</p>}
               {r.drive_name && (
@@ -560,7 +562,7 @@ function VaccinationTab({ farm, health, farmDrives, lang }) {
   const care = health.filter((r) => r.record_type === "treatment" || r.record_type === "deworming");
   return (
     <>
-      <Card title={`💉 ${T(lang, "Vaccinations")}`} right={<span className="text-[10px] text-gray-400">{vax.length} entr{vax.length === 1 ? "y" : "ies"}</span>}>
+      <Card title={`💉 ${T(lang, "Vaccinations")}`} right={<span className="text-[10px] text-gray-400">{vax.length} {vax.length === 1 ? T(lang, "entry") : T(lang, "entries")}</span>}>
         {vax.length === 0 ? (
           <p className="text-sm text-gray-400">{T(lang, "No vaccinations recorded yet.")}</p>
         ) : (
@@ -574,7 +576,7 @@ function VaccinationTab({ farm, health, farmDrives, lang }) {
                   </span>
                 </div>
                 <p className="text-[11px] text-gray-500 mt-1">
-                  {[r.dose, r.batch && `Batch ${r.batch}`, r.disease && `🎯 ${r.disease}`].filter(Boolean).join(" · ") || "—"}
+                  {[r.dose, r.batch && `${T(lang, "Batch")} ${r.batch}`, r.disease && `🎯 ${r.disease}`].filter(Boolean).join(" · ") || "—"}
                 </p>
                 {r.drive_name && (
                   <span className="inline-block mt-1.5 text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100 font-medium">
@@ -587,7 +589,7 @@ function VaccinationTab({ farm, health, farmDrives, lang }) {
         )}
       </Card>
 
-      <Card title={`💊 ${T(lang, "Treatments & Deworming")}`} className="mt-4" right={<span className="text-[10px] text-gray-400">{care.length} entr{care.length === 1 ? "y" : "ies"}</span>}>
+      <Card title={`💊 ${T(lang, "Treatments & Deworming")}`} className="mt-4" right={<span className="text-[10px] text-gray-400">{care.length} {care.length === 1 ? T(lang, "entry") : T(lang, "entries")}</span>}>
         {care.length === 0 ? (
           <p className="text-sm text-gray-400">{T(lang, "No treatments or deworming recorded yet.")}</p>
         ) : (
@@ -601,7 +603,7 @@ function VaccinationTab({ farm, health, farmDrives, lang }) {
                   </span>
                 </div>
                 <p className="text-[11px] text-gray-500 mt-1">
-                  {[r.dose, r.batch && `Batch ${r.batch}`, r.disease && `🎯 ${r.disease}`].filter(Boolean).join(" · ") || "—"}
+                  {[r.dose, r.batch && `${T(lang, "Batch")} ${r.batch}`, r.disease && `🎯 ${r.disease}`].filter(Boolean).join(" · ") || "—"}
                   {r.notes ? ` · ${r.notes}` : ""}
                 </p>
               </div>
@@ -611,7 +613,7 @@ function VaccinationTab({ farm, health, farmDrives, lang }) {
       </Card>
 
       {farmDrives.length > 0 && (
-        <Card title="💉 Vaccination Drives — coverage for this herd" className="mt-4">
+        <Card title={`💉 ${T(lang, "Vaccination Drives — coverage for this herd")}`} className="mt-4">
           <div className="grid gap-2 md:grid-cols-2">
             {farmDrives.map((d) => {
               const covered = (d.coverage.covered_farm_ids || []).includes(farm.farm_id);
@@ -622,14 +624,14 @@ function VaccinationTab({ farm, health, farmDrives, lang }) {
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 ${
                       covered ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
                     }`}>
-                      {covered ? "✅ Covered" : "⚠ Not yet covered"}
+                      {covered ? `✅ ${T(lang, "Covered")}` : `⚠ ${T(lang, "Not yet covered")}`}
                     </span>
                   </div>
                   <p className="text-[11px] text-gray-500 mt-1">
-                    {d.disease || "—"} · {d.vaccine || "—"} · {d.animal_category}
+                    {d.disease || "—"} · {d.vaccine || "—"} · {T(lang, d.animal_category)}
                   </p>
                   <p className="text-[11px] text-gray-400 mt-0.5">
-                    Drive coverage: {d.coverage.farm_coverage_pct}% farm · {d.coverage.animal_coverage_pct}% animal
+                    {T(lang, "Drive coverage:")} {d.coverage.farm_coverage_pct}% {T(lang, "farm")} · {d.coverage.animal_coverage_pct}% {T(lang, "animal")}
                   </p>
                 </div>
               );
@@ -643,6 +645,7 @@ function VaccinationTab({ farm, health, farmDrives, lang }) {
 
 function ReportsTab({ farm, farmReports, symptoms, expandedReportId, setExpandedReportId }) {
   const navigate = useNavigate();
+  const { lang } = useApp();
   return (
     <>
       <div className="flex flex-wrap gap-2">
@@ -650,19 +653,19 @@ function ReportsTab({ farm, farmReports, symptoms, expandedReportId, setExpanded
           onClick={() => navigate(`/report?farm=${farm.farm_id}`)}
           className="flex-1 min-w-[180px] py-3 bg-accent text-white font-semibold rounded-xl hover:opacity-90 transition-colors"
         >
-          🩺 Report Symptoms
+          🩺 {T(lang, "Report Symptoms")}
         </button>
         <button
           onClick={() => navigate(`/report?farm=${farm.farm_id}&mode=voice`)}
           className="flex-1 min-w-[180px] py-3 bg-primary text-white font-semibold rounded-xl hover:opacity-90 transition-colors"
         >
-          🎤 No-Typing Voice Report
+          🎤 {T(lang, "No-Typing Voice Report")}
         </button>
       </div>
 
-      <Card title={`📄 Farm Reports (${farmReports.length})`} className="mt-4">
+      <Card title={`📄 ${T(lang, "Farm Reports")} (${farmReports.length})`} className="mt-4">
         {farmReports.length === 0 ? (
-          <p className="text-sm text-gray-400">No symptom reports submitted yet.</p>
+          <p className="text-sm text-gray-400">{T(lang, "No symptom reports submitted yet.")}</p>
         ) : (
           <div className="grid gap-2 md:grid-cols-2">
             {farmReports.map((r) => (
@@ -670,20 +673,20 @@ function ReportsTab({ farm, farmReports, symptoms, expandedReportId, setExpanded
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">
-                      {r.affected_count || 0} affected {r.animal_type}
+                      {r.affected_count || 0} {T(lang, "affected")} {T(lang, r.animal_type)}
                     </span>
                     {(Number(r.deaths) || 0) > 0 && (
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-800 text-white font-medium">
-                        ⚰️ {r.deaths} death{r.deaths !== 1 ? "s" : ""}
+                        ⚰️ {r.deaths} {r.deaths !== 1 ? T(lang, "deaths") : T(lang, "death")}
                       </span>
                     )}
                     {r.source === "ai_auto" ? (
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-medium">
-                        🤖 AI Alert (auto-sensed)
+                        🤖 {T(lang, "AI Alert (auto-sensed)")}
                       </span>
                     ) : (
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium">
-                        ✍️ Manual (farmer)
+                        ✍️ {T(lang, "Manual (farmer)")}
                       </span>
                     )}
                   </div>
@@ -692,7 +695,7 @@ function ReportsTab({ farm, farmReports, symptoms, expandedReportId, setExpanded
                 <div className="flex flex-wrap gap-1 mt-1">
                   {(r.symptoms || []).map((s) => (
                     <span key={s} className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-[10px]">
-                      {SYMPTOMS[r.animal_category]?.find((x) => x.id === s)?.label || s}
+                      {T(lang, SYMPTOMS[r.animal_category]?.find((x) => x.id === s)?.label || s)}
                     </span>
                   ))}
                 </div>
@@ -708,14 +711,14 @@ function ReportsTab({ farm, farmReports, symptoms, expandedReportId, setExpanded
                       onClick={() => setExpandedReportId(expandedReportId === r.id ? null : r.id)}
                       className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-700 hover:underline"
                     >
-                      {expandedReportId === r.id ? "▾ Hide source sensing data" : "▸ View source sensing data"}
+                      {expandedReportId === r.id ? `▾ ${T(lang, "Hide source sensing data")}` : `▸ ${T(lang, "View source sensing data")}`}
                     </button>
                     {expandedReportId === r.id && (
                       <div className="mt-2 bg-indigo-50 border border-indigo-100 rounded-xl p-3">
                         {r.sensing_reading ? (
                           <>
                             <p className="text-[10px] text-gray-400 uppercase font-medium mb-1.5">
-                              Source sensing reading · {new Date(r.sensing_reading.fetched_at).toLocaleString()}
+                              {T(lang, "Source sensing reading")} · {new Date(r.sensing_reading.fetched_at).toLocaleString()}
                             </p>
                             <div className="grid grid-cols-3 gap-2">
                               <span className="bg-white rounded-lg px-2 py-1.5 text-center">
@@ -723,18 +726,18 @@ function ReportsTab({ farm, farmReports, symptoms, expandedReportId, setExpanded
                                 <span className="text-sm font-semibold text-gray-800">{fmtNum(r.sensing_reading.ndvi)}</span>
                               </span>
                               <span className="bg-white rounded-lg px-2 py-1.5 text-center">
-                                <span className="block text-[10px] text-gray-400 uppercase">Soil temp</span>
+                                <span className="block text-[10px] text-gray-400 uppercase">{T(lang, "Soil temp")}</span>
                                 <span className="text-sm font-semibold text-gray-800">{fmtCel(r.sensing_reading.soil_temp)}</span>
                               </span>
                               <span className="bg-white rounded-lg px-2 py-1.5 text-center">
-                                <span className="block text-[10px] text-gray-400 uppercase">Soil moisture</span>
+                                <span className="block text-[10px] text-gray-400 uppercase">{T(lang, "Soil moisture")}</span>
                                 <span className="text-sm font-semibold text-gray-800">{fmtMoisture(r.sensing_reading.soil_moisture)}</span>
                               </span>
                             </div>
                             <p className="text-[10px] text-gray-400 mt-2">row {r.sensing_reading.id} · {r.sensing_reading.fetch_status}</p>
                           </>
                         ) : (
-                          <p className="text-xs text-gray-500">Source sensing data unavailable for this alert.</p>
+                          <p className="text-xs text-gray-500">{T(lang, "Source sensing data unavailable for this alert.")}</p>
                         )}
                       </div>
                     )}
@@ -748,7 +751,7 @@ function ReportsTab({ farm, farmReports, symptoms, expandedReportId, setExpanded
 
       {symptoms.length > 0 && (
         <p className="text-[11px] text-gray-400 mt-2">
-          Symptom checklist available for this category: {symptoms.map((s) => s.label).join(", ")}.
+          {T(lang, "Symptom checklist available for this category:")} {symptoms.map((s) => T(lang, s.label)).join(", ")}.
         </p>
       )}
     </>
@@ -756,11 +759,12 @@ function ReportsTab({ farm, farmReports, symptoms, expandedReportId, setExpanded
 }
 
 function LabTab({ _farm, farmSamples }) {
+  const { lang } = useApp();
   return (
-    <Card title={`🧪 Lab Samples & Results (${farmSamples.length})`}>
+    <Card title={`🧪 ${T(lang, "Lab Samples & Results")} (${farmSamples.length})`}>
       {farmSamples.length === 0 ? (
         <p className="text-sm text-gray-400">
-          No samples referred yet. The vet sends blood/swab samples to the district lab; the returned result appears here.
+          {T(lang, "No samples referred yet. The vet sends blood/swab samples to the district lab; the returned result appears here.")}
         </p>
       ) : (
         <div className="grid gap-2 md:grid-cols-2">
@@ -771,32 +775,32 @@ function LabTab({ _farm, farmSamples }) {
               <div key={s.id} className="border border-gray-100 rounded-xl p-3">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-xs font-semibold text-gray-900">
-                    {SAMPLE_TYPE_LABEL[s.sample_type]?.icon || "🧪"} {SAMPLE_TYPE_LABEL[s.sample_type]?.label || s.sample_type} sample
+                    {SAMPLE_TYPE_LABEL[s.sample_type]?.icon || "🧪"} {T(lang, SAMPLE_TYPE_LABEL[s.sample_type]?.label || s.sample_type)} {T(lang, "sample")}
                   </p>
                   {s.status === "resulted" && res ? (
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 ${res.cls}`}>
-                      {res.label}
+                      {T(lang, res.label)}
                     </span>
                   ) : (
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 ${st?.cls}`}>
-                      {st?.label || s.status}
+                      {T(lang, st?.label || s.status)}
                     </span>
                   )}
                 </div>
                 {(s.suspected_disease || s.test_requested) && (
                   <p className="text-[11px] text-gray-500 mt-1 truncate">
-                    {[s.suspected_disease ? `🦠 Suspected ${s.suspected_disease}` : null, s.test_requested].filter(Boolean).join(" · ")}
+                    {[s.suspected_disease ? `🦠 ${T(lang, "Suspected")} ${s.suspected_disease}` : null, s.test_requested].filter(Boolean).join(" · ")}
                   </p>
                 )}
                 {s.status === "resulted" && (
                   <p className="text-[11px] text-gray-600 mt-1">
-                    Result: {res ? res.label : s.result}
-                    {s.pathogen ? ` · 🦠 Pathogen: ${s.pathogen}` : ""}
+                    {T(lang, "Result:")} {res ? T(lang, res.label) : s.result}
+                    {s.pathogen ? ` · 🦠 ${T(lang, "Pathogen:")} ${s.pathogen}` : ""}
                   </p>
                 )}
                 <p className="text-[10px] text-gray-400 mt-1">
-                  Collected {new Date(s.collected_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                  {s.resulted_at ? ` · Result ${new Date(s.resulted_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}` : ""}
+                  {T(lang, "Collected")} {new Date(s.collected_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                  {s.resulted_at ? ` · ${T(lang, "Result")} ${new Date(s.resulted_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}` : ""}
                   {" · "}{s.lab_name}
                 </p>
                 {s.remarks && <p className="text-[11px] text-gray-500 mt-1 leading-snug">{s.remarks}</p>}
@@ -810,8 +814,9 @@ function LabTab({ _farm, farmSamples }) {
 }
 
 function LocationTab({ farm, criticalClusters, showRings }) {
+  const { lang } = useApp();
   return (
-    <Card title="Farm Location & Coverage">
+    <Card title={T(lang, "Farm Location & Coverage")}>
       <MapContainer
         center={[farm.lat, farm.lng]}
         zoom={14}
@@ -852,11 +857,11 @@ function LocationTab({ farm, criticalClusters, showRings }) {
           ))}
       </MapContainer>
       <p className="text-xs text-gray-400 mt-2">
-        Coverage zone: ~150m polygon · {farm.polygon_id ? "registered server-side" : "awaiting registration"}
+        {T(lang, "Coverage zone:")} ~150m {T(lang, "polygon")} · {farm.polygon_id ? T(lang, "registered server-side") : T(lang, "awaiting registration")}
       </p>
       {!showRings && (
         <p className="text-[11px] text-gray-400 mt-1">
-          🔒 Your farm's location is shown only to you and your authorized veterinary team.
+          🔒 {T(lang, "Your farm's location is shown only to you and your authorized veterinary team.")}
         </p>
       )}
     </Card>
@@ -865,9 +870,9 @@ function LocationTab({ farm, criticalClusters, showRings }) {
 
 function AlertsTab({ farmInbox, lang }) {
   return (
-    <Card title="📥 Farm Inbox — Alerts & Advisories">
+    <Card title={`📥 ${T(lang, "Farm Inbox")} — ${T(lang, "Alerts & Advisories")}`}>
       {farmInbox.length === 0 ? (
-        <p className="text-sm text-gray-400">No messages yet.</p>
+        <p className="text-sm text-gray-400">{T(lang, "No messages yet.")}</p>
       ) : (
         <>
           <div className="grid gap-2 md:grid-cols-2">
@@ -877,7 +882,7 @@ function AlertsTab({ farmInbox, lang }) {
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                     m.type === "vet" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
                   }`}>
-                    {m.type === "vet" ? "🐮 Vet Dispatch" : "📢 Advisory"}
+                    {m.type === "vet" ? `🐮 ${T(lang, "Vet Dispatch")}` : `📢 ${T(lang, "Advisory")}`}
                   </span>
                   <span className="text-[10px] text-gray-400">{new Date(m.ts).toLocaleString()}</span>
                 </div>
